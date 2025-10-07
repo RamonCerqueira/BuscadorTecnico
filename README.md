@@ -278,5 +278,5 @@ Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICEN
 
 ---
 
-**Desenvolvido com ❤️ pela equipe TechFix**
+**Desenvolvido por Ramon Cerqueira e com ❤️ pela equipe TechFix**
 
