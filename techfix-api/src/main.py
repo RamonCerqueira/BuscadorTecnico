@@ -7,7 +7,6 @@ from flask import Flask, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO
 from src.models.user import db
-from src.routes.user import user_bp
 from src.routes.auth import auth_bp
 from src.routes.tickets import tickets_bp
 from src.routes.users import users_bp
@@ -22,7 +21,7 @@ from src.routes.analytics import analytics_bp
 from src.routes.public_search import public_search_bp
 
 app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
-app.config['SECRET_KEY'] = 'asdf#FGSgvasgf$5$WGT'
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
 
 # Habilitar CORS para todas as rotas
 CORS(app, origins="*")
@@ -31,7 +30,6 @@ CORS(app, origins="*")
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Registrar blueprints
-app.register_blueprint(user_bp, url_prefix='/api')
 app.register_blueprint(auth_bp, url_prefix='/api')
 app.register_blueprint(tickets_bp, url_prefix='/api')
 app.register_blueprint(users_bp, url_prefix='/api')
@@ -88,4 +86,3 @@ def health_check():
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
-

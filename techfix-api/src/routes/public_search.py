@@ -2,8 +2,31 @@ from flask import Blueprint, request, jsonify
 from sqlalchemy import or_, func
 from src.models.user import db, User
 from src.models.ticket import Ticket
+import json
 
 public_search_bp = Blueprint("public_search", __name__)
+
+
+def _parse_specialties(raw_specialties):
+    """Normaliza especialidades salvas como JSON (preferencial) ou CSV legado."""
+    if not raw_specialties:
+        return []
+
+    if isinstance(raw_specialties, list):
+        return [s for s in raw_specialties if s]
+
+    if isinstance(raw_specialties, str):
+        try:
+            parsed = json.loads(raw_specialties)
+            if isinstance(parsed, list):
+                return [str(s).strip() for s in parsed if str(s).strip()]
+        except json.JSONDecodeError:
+            pass
+
+        # Fallback legado
+        return [s.strip() for s in raw_specialties.split(",") if s.strip()]
+
+    return []
 
 @public_search_bp.route("/public/search", methods=["GET"])
 def public_search():
@@ -21,23 +44,19 @@ def public_search():
             User.user_type == "company"
         ))
         
-        # Filtrar por query (nome, descrição, especialidade)
+        # Filtrar por query (nome, especialidade e endereço)
         if query:
             search_pattern = f"%{query.lower()}%"
             users_query = users_query.filter(or_(
                 func.lower(User.name).like(search_pattern),
-                func.lower(User.description).like(search_pattern),
-                func.lower(User.specialties).like(search_pattern)
+                func.lower(User.specialties).like(search_pattern),
+                func.lower(User.location_address).like(search_pattern)
             ))
         
         # Filtrar por localização
         if location:
             location_pattern = f"%{location.lower()}%"
-            users_query = users_query.filter(or_(
-                func.lower(User.address).like(location_pattern),
-                func.lower(User.city).like(location_pattern),
-                func.lower(User.state).like(location_pattern)
-            ))
+            users_query = users_query.filter(func.lower(User.location_address).like(location_pattern))
         
         # Filtrar por tags
         if tags:
@@ -54,15 +73,16 @@ def public_search():
         search_results = []
         for user in results.items:
             user_data = user.to_dict()
+            specialties_list = _parse_specialties(user.specialties)
             
             # Adicionar informações extras para busca pública
             user_data.update({
                 'rating': user.rating or 0,
                 'total_reviews': user.total_reviews or 0,
-                'specialties_list': [s.strip() for s in (user.specialties or "").split(",") if s.strip()],
+                'specialties_list': specialties_list,
                 'is_available': True,  # Pode ser calculado baseado em disponibilidade
                 'response_time': '2-4 horas',  # Pode ser calculado baseado em histórico
-                'profile_image': user.profile_image or '/default-avatar.png'
+                'profile_image': user.avatar or user.logo or '/default-avatar.png'
             })
             
             search_results.append(user_data)
@@ -97,27 +117,12 @@ def get_public_profile(user_id):
             return jsonify({"success": False, "error": "Perfil não encontrado"}), 404
         
         # Buscar estatísticas do usuário
-        total_tickets = Ticket.query.filter_by(assigned_technician_id=user_id).count()
+        total_tickets = Ticket.query.filter_by(assigned_to_id=user_id).count()
         completed_tickets = Ticket.query.filter_by(
-            assigned_technician_id=user_id, 
-            status='closed'
+            assigned_to_id=user_id, 
+            status='resolved'
         ).count()
-        
-        # Buscar avaliações recentes
-        recent_reviews = Ticket.query.filter(
-            Ticket.assigned_technician_id == user_id,
-            Ticket.rating.isnot(None),
-            Ticket.review.isnot(None)
-        ).order_by(Ticket.closed_at.desc()).limit(5).all()
-        
         reviews_data = []
-        for ticket in recent_reviews:
-            reviews_data.append({
-                'rating': ticket.rating,
-                'review': ticket.review,
-                'date': ticket.closed_at.isoformat() if ticket.closed_at else None,
-                'client_name': ticket.client.name if ticket.client else 'Cliente'
-            })
         
         # Preparar dados do perfil
         profile_data = user.to_dict()
@@ -130,7 +135,7 @@ def get_public_profile(user_id):
                 'total_reviews': user.total_reviews or 0
             },
             'recent_reviews': reviews_data,
-            'specialties_list': [s.strip() for s in (user.specialties or "").split(",") if s.strip()],
+            'specialties_list': _parse_specialties(user.specialties),
             'gallery': [],  # Pode ser implementado para mostrar trabalhos anteriores
             'certifications': [],  # Pode ser implementado para mostrar certificações
             'working_hours': {
@@ -166,7 +171,7 @@ def get_all_tags():
         for specialty_tuple in all_specialties:
             specialty_str = specialty_tuple[0]
             if specialty_str:
-                tags_list = [tag.strip().lower() for tag in specialty_str.split(",") if tag.strip()]
+                tags_list = [tag.strip().lower() for tag in _parse_specialties(specialty_str)]
                 unique_tags.update(tags_list)
         
         return jsonify({
@@ -202,16 +207,19 @@ def get_common_problems():
 def get_popular_locations():
     """Retorna localizações populares"""
     try:
-        # Buscar cidades mais comuns dos usuários
-        popular_cities = db.session.query(
-            User.city,
-            func.count(User.id).label('count')
-        ).filter(
+        providers = User.query.filter(
             or_(User.user_type == "technician", User.user_type == "company"),
-            User.city.isnot(None)
-        ).group_by(User.city).order_by(func.count(User.id).desc()).limit(10).all()
-        
-        cities = [city for city, count in popular_cities if city]
+            User.location_address.isnot(None)
+        ).all()
+
+        city_count = {}
+        for provider in providers:
+            address = provider.location_address or ""
+            city = address.split(",")[0].strip() if address else ""
+            if city:
+                city_count[city] = city_count.get(city, 0) + 1
+
+        cities = [city for city, _count in sorted(city_count.items(), key=lambda x: x[1], reverse=True)[:10]]
         
         return jsonify({
             "success": True,
@@ -235,7 +243,7 @@ def get_featured_providers():
         for user in featured:
             user_data = user.to_dict()
             user_data.update({
-                'specialties_list': [s.strip() for s in (user.specialties or "").split(",") if s.strip()],
+                'specialties_list': _parse_specialties(user.specialties),
                 'is_featured': True
             })
             featured_data.append(user_data)
@@ -247,4 +255,3 @@ def get_featured_providers():
         
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
-
