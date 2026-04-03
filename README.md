@@ -52,10 +52,25 @@ pnpm dev
 
 ---
 
+## Endpoints já implementados (P1)
+
+### Tickets
+- `POST /api/tickets` cria solicitação
+- `GET /api/tickets` lista solicitações (filtro opcional `status`)
+- `GET /api/marketplace/tickets` lista solicitações abertas para marketplace
+
+### Proposals (orçamentos)
+- `POST /api/tickets/:ticketId/proposals` cria proposta (somente técnico/empresa)
+- `GET /api/tickets/:ticketId/proposals` lista propostas da solicitação
+- `POST /api/proposals/:proposalId/accept` aceita proposta (somente cliente dono)
+- `POST /api/proposals/:proposalId/reject` rejeita proposta (somente cliente dono)
+
+---
+
 ## Próximos passos da migração
 
-1. Implementar módulos de domínio no NestJS (`auth`, `tickets`, `proposals`, `marketplace`).
+1. Implementar autenticação JWT + refresh token + RBAC no NestJS.
 2. Migrar telas do produto para App Router com consumo real da API.
-3. Adicionar autenticação JWT + refresh token + RBAC.
+3. Adicionar chat por ticket e notificações em tempo real.
 4. Adicionar testes (unit, integration e e2e).
 5. Configurar deploy contínuo (Vercel + serviço cloud para API/DB/Redis).

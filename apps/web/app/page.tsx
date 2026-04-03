@@ -1,4 +1,5 @@
 import { Button } from '@/components/ui/button';
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
@@ -9,7 +10,9 @@ export default function HomePage() {
         Base inicial pronta com React + TypeScript + Tailwind + Radix, Zustand e React Query.
       </p>
       <div className="flex gap-3">
-        <Button>Explorar Marketplace</Button>
+        <Button asChild>
+          <Link href="/marketplace">Explorar Marketplace</Link>
+        </Button>
         <Button variant="outline">Abrir Solicitação</Button>
       </div>
     </main>

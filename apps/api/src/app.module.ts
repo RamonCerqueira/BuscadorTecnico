@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { redisStore } from 'cache-manager-redis-yet';
 import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
+import { TicketsModule } from './tickets/tickets.module';
+import { ProposalsModule } from './proposals/proposals.module';
 
 @Module({
   imports: [
@@ -21,7 +23,9 @@ import { PrismaModule } from './prisma/prisma.module';
         ttl: 60
       })
     }),
-    PrismaModule
+    PrismaModule,
+    TicketsModule,
+    ProposalsModule
   ],
   controllers: [AppController]
 })
