@@ -52,6 +52,12 @@ pnpm dev
 
 ---
 
+## Deploy Vercel (evitar versão antiga)
+
+Consulte o guia: [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
+
+---
+
 ## Endpoints já implementados (P1)
 
 ### Auth

@@ -30,32 +30,44 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
   });
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-3xl space-y-4 px-6 py-10">
-      <h1 className="text-2xl font-bold">Chat da Solicitação</h1>
-      <div className="space-y-2 rounded border border-slate-800 p-4">
-        {messagesQuery.data?.map((message) => (
-          <article key={message.id} className="rounded bg-slate-900 p-3">
-            <p className="text-xs text-slate-400">{message.sender.name} ({message.sender.userType})</p>
-            <p>{message.content}</p>
-          </article>
-        ))}
-      </div>
+    <main className="mx-auto min-h-[calc(100vh-64px)] w-full max-w-4xl px-4 py-10 sm:px-6">
+      <h1 className="mb-6 text-3xl font-semibold">Chat da Solicitação</h1>
 
-      <input
-        className="w-full rounded bg-slate-900 p-2"
-        placeholder="Seu ID de usuário"
-        value={senderId}
-        onChange={(e) => setSenderId(e.target.value)}
-      />
-      <textarea
-        className="w-full rounded bg-slate-900 p-2"
-        placeholder="Digite sua mensagem"
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-      />
-      <button className="rounded bg-blue-600 px-4 py-2" onClick={() => sendMutation.mutate()}>
-        Enviar mensagem
-      </button>
+      <section className="glass-card mb-4 max-h-[380px] space-y-3 overflow-y-auto p-4">
+        {messagesQuery.data?.length ? (
+          messagesQuery.data.map((message) => (
+            <article key={message.id} className="rounded-xl border border-white/10 bg-slate-900/60 p-3">
+              <p className="text-xs text-slate-400">
+                {message.sender.name} ({message.sender.userType})
+              </p>
+              <p className="mt-1">{message.content}</p>
+            </article>
+          ))
+        ) : (
+          <p className="text-sm text-slate-400">Nenhuma mensagem ainda.</p>
+        )}
+      </section>
+
+      <section className="glass-card space-y-3 p-4">
+        <input
+          className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
+          placeholder="Seu ID de usuário"
+          value={senderId}
+          onChange={(e) => setSenderId(e.target.value)}
+        />
+        <textarea
+          className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
+          placeholder="Digite sua mensagem"
+          value={content}
+          onChange={(e) => setContent(e.target.value)}
+        />
+        <button
+          className="rounded-xl bg-cyan-600 px-4 py-2 font-medium text-white transition hover:bg-cyan-500"
+          onClick={() => sendMutation.mutate()}
+        >
+          {sendMutation.isPending ? 'Enviando...' : 'Enviar mensagem'}
+        </button>
+      </section>
     </main>
   );
 }
