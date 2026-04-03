@@ -1,173 +1,210 @@
-# TODO - Novas Funcionalidades TechFix
+# TODO Mestre — TechFix Marketplace (Clientes, Técnicos e Empresas)
 
-## Fase 1: Planejamento e Análise de Requisitos para Novas Funcionalidades
-- [ ] Detalhar requisitos para Notificações push em tempo real
-- [ ] Detalhar requisitos para Integração com WhatsApp Business
-- [ ] Detalhar requisitos para Sistema de pagamento integrado
-- [ ] Detalhar requisitos para App mobile PWA
-- [ ] Detalhar requisitos para IA mais avançada com computer vision
-- [ ] Detalhar requisitos para Sistema de agendamento avançado
-- [ ] Detalhar requisitos para Relatórios e analytics avançados
+## 1) Diagnóstico profundo do estado atual
 
-## Fase 2: Implementação de Notificações push em tempo real
-- [ ] Pesquisar tecnologias para notificações push (WebSockets, Firebase Cloud Messaging, etc.)
-- [ ] Implementar backend para envio de notificações
-- [ ] Implementar frontend para recebimento e exibição de notificações
+### 1.1 A proposta de produto está clara
+O sistema desejado é um **marketplace de solicitações de serviço técnico**:
+- Cliente/usuário final publica um problema.
+- Técnicos e empresas localizam solicitações compatíveis.
+- Técnicos/empresas enviam orçamentos e iniciam contato.
+- Cliente compara propostas e escolhe quem vai atender.
 
-## Fase 3: Integração com WhatsApp Business
-- [ ] Pesquisar APIs de WhatsApp Business (Twilio, MessageBird, etc.)
-- [ ] Implementar backend para integração com WhatsApp
-- [ ] Criar fluxos de mensagens automatizadas
+### 1.2 O projeto já possui base relevante (boa notícia)
+Já existe:
+- Front público de busca (`/api/public/search`, tags, destaque, perfil público).
+- Fluxo básico de chamados (criar, listar, responder, atribuir).
+- Perfis por tipo de usuário (`client`, `technician`, `company`, `admin`).
+- Upload, notificações, WhatsApp, pagamentos, scheduling e analytics **ao menos no nível de rotas/estrutura**.
 
-## Fase 4: Implementação de Sistema de pagamento integrado
-- [ ] Pesquisar gateways de pagamento (Stripe, PagSeguro, Mercado Pago, etc.)
-- [ ] Implementar backend para processamento de pagamentos
-- [ ] Criar interface de pagamento no frontend
+### 1.3 Bloqueadores críticos (precisam ser resolvidos primeiro)
+Há inconsistências estruturais que impedem o produto de “funcionar perfeitamente”:
 
-## Fase 5: Desenvolvimento de App mobile PWA
-- [ ] Configurar projeto React para PWA
-- [ ] Implementar service worker
-- [ ] Otimizar performance para PWA
+1. **Divergência entre frontend e backend**
+   - Front usa stores mockadas (Zustand) para autenticação/chamados em vez de consumir API como fonte principal.
+   - Resultado: experiência de demo funciona parcialmente, mas sem consistência de dados reais.
 
-## Fase 6: Aprimoramento da IA com computer vision
-- [ ] Pesquisar frameworks de Computer Vision (OpenCV, TensorFlow.js, etc.)
-- [ ] Coletar e preparar dados para treinamento de modelos
-- [ ] Treinar e integrar modelos de Computer Vision no backend
+2. **Rotas com campos inexistentes no modelo**
+   - Em `public_search.py`, há uso de campos como `User.description`, `User.city`, `User.state`, `User.address`, `User.profile_image` e `Ticket.assigned_technician_id`, `Ticket.closed_at`, `Ticket.rating`, `Ticket.review` que **não existem** nos modelos atuais.
+   - Isso gera falhas de execução nas rotas de marketplace público e perfil público.
 
-## Fase 7: Desenvolvimento de Sistema de agendamento avançado
-- [ ] Modelar banco de dados para agendamentos
-- [ ] Implementar lógica de agendamento no backend
-- [ ] Criar interface de agendamento no frontend
+3. **Rota legacy quebrada (`routes/user.py`)**
+   - Usa atributo `username` no `User`, mas o modelo usa `name`.
+   - Pode quebrar endpoints `/users` dependendo de ordem de blueprint e uso.
 
-## Fase 8: Desenvolvimento de Relatórios e analytics avançados
-- [ ] Definir métricas e KPIs para relatórios
-- [ ] Implementar coleta de dados para analytics
-- [ ] Criar dashboards e visualizações de dados
+4. **Segurança insuficiente para produção**
+   - Token mockado (`mock_token_*`), hash SHA256 direto sem salt/pepper adaptativo (sem bcrypt/argon2), e ausência de controle robusto de sessão/permissão.
 
-## Fase 9: Testes e Integração das Novas Funcionalidades
-- [ ] Realizar testes unitários e de integração
-- [ ] Testar todas as novas funcionalidades
-- [ ] Garantir compatibilidade com funcionalidades existentes
+5. **Dependências de backend incompletas vs código**
+   - Código usa bibliotecas avançadas (OpenAI, OpenCV, Pillow, pandas, plotly, requests etc.) e `requirements.txt` atual não cobre esse conjunto.
 
-## Fase 10: Documentação e Entrega das Novas Funcionalidades
-- [ ] Atualizar documentação do projeto
-- [ ] Criar guias de uso para as novas funcionalidades
-- [ ] Apresentar e entregar as novas funcionalidades
+---
 
+## 2) Objetivo funcional final (definição de pronto)
 
+Para “funcionar perfeitamente” no cenário de marketplace solicitado, o sistema precisa atender ao mínimo abaixo:
 
-### Detalhes para Notificações Push em Tempo Real
-- **Tecnologia:** Firebase Cloud Messaging (FCM) para notificações cross-platform (web e mobile) e WebSockets para comunicação em tempo real dentro da aplicação (chat, atualizações de status de chamados).
-- **Backend:** Implementar integração com FCM para envio de mensagens. Usar Flask-SocketIO para gerenciar conexões WebSocket.
-- **Frontend:** Configurar React para receber notificações FCM e exibir alertas. Implementar cliente WebSocket para comunicação em tempo real.
-- **Tipos de Notificação:**
-    - **Chamados:** Atualizações de status (aberto, em andamento, resolvido), novas mensagens no chat do chamado, atribuição de técnico.
-    - **Gerais:** Novas funcionalidades, comunicados da plataforma.
-- **Persistência:** Armazenar histórico de notificações no banco de dados para que o usuário possa consultá-las posteriormente.
-- **Preferências do Usuário:** Permitir que o usuário configure quais tipos de notificações deseja receber e por qual canal (push, email, etc.).
+1. Cadastro/login real com autorização por papéis (cliente/técnico/empresa/admin).
+2. Cliente consegue abrir solicitação com mídia, localização e detalhes.
+3. Técnicos/empresas visualizam marketplace de solicitações abertas com filtros.
+4. Técnicos/empresas enviam **propostas/orçamentos** estruturados.
+5. Cliente compara propostas, aceita uma, recusa outras.
+6. Fluxo de atendimento: aberto → propostas → contratado → em execução → concluído/cancelado.
+7. Mensageria/notificações entre partes.
+8. Painel por papel com métricas básicas e histórico.
+9. Regras de negócio e auditoria (quem fez o quê e quando).
+10. Testes mínimos cobrindo fluxo principal ponta a ponta.
 
+---
 
+## 3) Plano de implementação por prioridade (P0 → P3)
 
+## P0 — Correções estruturais imediatas (bloqueadores)
+- [ ] **Unificar contrato de dados**: revisar modelo `User` e `Ticket` vs campos usados nas rotas; remover/ajustar campos fantasmas.
+- [ ] Refatorar `public_search.py` para usar campos realmente existentes (`location_address`, `avatar`, `specialties` como JSON etc.)
+- [ ] Corrigir/remover `routes/user.py` legado com `username`.
+- [ ] Definir uma estratégia de compatibilidade: migração de banco + scripts de seed consistentes.
+- [ ] Atualizar `requirements.txt` conforme imports reais ou remover recursos não usados.
+- [ ] Trocar autenticação mock por JWT real com refresh token (ou sessão segura).
 
-### Detalhes para Integração com WhatsApp Business
-- **Tecnologia:** WhatsApp Business Platform (Cloud API da Meta) para comunicação oficial e escalável. Avaliar Twilio ou MessageBird como provedores para simplificar a integração, se necessário.
-- **Backend:** Implementar módulos para envio e recebimento de mensagens via API do WhatsApp Business. Gerenciar templates de mensagens aprovados.
-- **Fluxos de Mensagens:**
-    - **Notificações Automatizadas:** Envio de atualizações de status de chamados, lembretes de agendamento, confirmações de serviço.
-    - **Atendimento ao Cliente:** Possibilitar que clientes iniciem conversas para dúvidas ou suporte.
-    - **Respostas Rápidas:** Configurar respostas automáticas para perguntas frequentes.
-- **Autenticação:** Gerenciar tokens de acesso e webhooks para comunicação segura.
-- **Persistência:** Armazenar histórico de conversas no banco de dados para auditoria e acompanhamento.
-- **Integração com Chamados:** Vincular conversas do WhatsApp a chamados existentes na plataforma.
+## P1 — Marketplace funcional de solicitações e propostas
+- [ ] Criar entidade **Proposal/Quote** com:
+  - `id`, `ticket_id`, `provider_id`, `provider_type`, `message`, `estimated_cost_min`, `estimated_cost_max`, `visit_fee`, `eta`, `status`.
+- [ ] Endpoints de proposta:
+  - `POST /tickets/:id/proposals`
+  - `GET /tickets/:id/proposals`
+  - `POST /proposals/:id/accept`
+  - `POST /proposals/:id/reject`
+- [ ] Regras de negócio:
+  - Somente técnico/empresa envia proposta.
+  - Cliente dono do ticket é o único que aceita.
+  - Ao aceitar proposta: ticket recebe responsável e status muda para `in_progress`.
+- [ ] Frontend:
+  - Cliente: tela “Minhas Solicitações” com aba “Propostas Recebidas”.
+  - Técnico/Empresa: tela “Marketplace de Solicitações” com filtros por distância, categoria e urgência.
 
+## P1.1 — Fluxo de contato e conversa por solicitação
+- [ ] Entidade de conversa por ticket (`TicketThread`/`TicketMessage`).
+- [ ] Chat básico REST + upgrade posterior para Socket.IO em tempo real.
+- [ ] Permitir anexos na conversa e histórico completo.
 
+## P2 — Segurança, governança e qualidade de operação
+- [ ] Autorização centralizada por papel/ownership em decorators.
+- [ ] Rate-limit em login, criação de chamados e envio de propostas.
+- [ ] Validações robustas (schema com Pydantic/Marshmallow ou validação equivalente).
+- [ ] Sanitização de input e proteção contra upload malicioso.
+- [ ] Observabilidade básica: logs estruturados + IDs de correlação por request.
+- [ ] Migrations (Alembic/Flask-Migrate) e versionamento de schema.
 
+## P2.1 — Busca e geolocalização realmente úteis
+- [ ] Padronizar armazenamento de localização (lat/lng + endereço normalizado).
+- [ ] Implementar cálculo de distância real (Haversine/PostGIS) e ordenação por proximidade.
+- [ ] Índices de banco para filtros de marketplace (status, categoria, cidade, data).
 
-### Detalhes para Sistema de Pagamento Integrado
-- **Tecnologia:** Avaliar Stripe e Mercado Pago. Ambos oferecem APIs robustas e são amplamente utilizados no Brasil. A escolha final dependerá de fatores como taxas, facilidade de integração e funcionalidades específicas (ex: pagamentos recorrentes).
-- **Backend:** Implementar integração com a API do gateway de pagamento escolhido. Gerenciar transações (criação, consulta, estorno), webhooks para atualizações de status de pagamento e segurança dos dados sensíveis.
-- **Frontend:** Criar interface para o cliente realizar pagamentos (cartão de crédito, boleto, Pix). Exibir status da transação e histórico de pagamentos.
-- **Fluxos de Pagamento:**
-    - **Pagamento por Serviço:** Cliente paga o técnico/empresa após a conclusão do serviço.
-    - **Pagamento de Assinatura:** Para funcionalidades premium ou planos de serviço (se aplicável).
-    - **Comissão da Plataforma:** Implementar lógica para a plataforma receber uma comissão sobre os serviços pagos.
-- **Segurança:** Garantir conformidade com PCI DSS (se aplicável) e proteção de dados do cliente.
+## P3 — Monetização, diferenciação e escala
+- [ ] Pagamentos reais (checkout + split/comissão + webhooks idempotentes).
+- [ ] SLA de resposta e ranking de técnicos/empresas.
+- [ ] Reputação avançada (avaliações verificadas por serviço concluído).
+- [ ] Analytics confiável por papel (cliente, técnico, empresa, admin).
+- [ ] IA vision opcional com fallback quando APIs externas indisponíveis.
 
+---
 
+## 4) Backlog técnico detalhado por camada
 
+### 4.1 Backend (Flask)
+- [ ] Criar módulo de domínio de marketplace:
+  - `models/proposal.py`
+  - `routes/proposals.py`
+  - políticas de autorização.
+- [ ] Revisar e padronizar status de ticket (`open`, `quoted`, `in_progress`, `resolved`, `closed`, `cancelled`).
+- [ ] Evitar `except Exception` genérico em todas rotas sem classificação.
+- [ ] Criar camada de serviços (não deixar regra de negócio espalhada em rotas).
+- [ ] Adicionar testes unitários e integração para fluxo principal.
 
-### Detalhes para Desenvolvimento de App Mobile PWA
-- **Tecnologia:** Utilizar o frontend React existente e configurá-lo como um Progressive Web App (PWA).
-- **Configuração:**
-    - **Manifest File:** Criar `manifest.json` para definir metadados do PWA (nome, ícones, tela inicial, etc.).
-    - **Service Worker:** Implementar um service worker para cache de assets, permitindo que a aplicação funcione offline ou com conectividade limitada. Utilizar Workbox para simplificar o desenvolvimento do service worker.
-    - **HTTPS:** Garantir que a aplicação seja servida via HTTPS (essencial para PWAs).
-- **Funcionalidades Offline:**
-    - **Acesso Básico:** Permitir que o usuário acesse as páginas já visitadas mesmo sem conexão.
-    - **Criação de Chamados Offline:** (Opcional, mas desejável) Armazenar chamados criados offline e sincronizá-los quando a conexão for restabelecida.
-- **Experiência do Usuário:**
-    - **Instalabilidade:** Permitir que o usuário adicione o PWA à tela inicial do dispositivo.
-    - **Performance:** Otimizar o carregamento inicial e a fluidez da aplicação em dispositivos móveis.
-    - **Notificações Push:** Integrar com as notificações push já planejadas para uma experiência nativa.
+### 4.2 Frontend (React)
+- [ ] Migrar de stores mock para integração API por etapas:
+  1. Auth
+  2. Tickets
+  3. Proposals
+  4. Notifications
+- [ ] Corrigir rotas internas que usam caminhos inconsistentes (`/tickets/new` vs `/app/tickets/new`).
+- [ ] Criar telas específicas por papel:
+  - Cliente: criar solicitação, comparar propostas.
+  - Técnico/Empresa: marketplace, envio de orçamento, agenda.
+- [ ] Tratamento de erro/carregamento padrão para todas chamadas API.
 
+### 4.3 Banco de dados
+- [ ] Definir modelo relacional completo para marketplace.
+- [ ] Adicionar índices em colunas de filtro e ordenação.
+- [ ] Estratégia de migração e rollback.
+- [ ] Seeds coerentes para ambiente de demonstração.
 
+### 4.4 DevEx / Operação
+- [ ] Docker Compose para rodar app + banco + worker (se houver).
+- [ ] `.env.example` com todas variáveis obrigatórias.
+- [ ] CI com lint + testes + build frontend.
+- [ ] Padronizar logs e saúde (`/api/health`, readiness e liveness).
 
+---
 
-### Detalhes para Aprimoramento da IA com Computer Vision
-- **Tecnologia:** Utilizar TensorFlow (com sua Object Detection API) ou OpenCV para tarefas de Computer Vision. A escolha dependerá da complexidade das tarefas e dos recursos disponíveis. Para detecção de objetos e classificação de imagens, TensorFlow é uma boa opção. Para processamento de imagem mais geral, OpenCV é excelente.
-- **Backend:** Implementar um serviço de inferência de modelos de Computer Vision no backend Flask. Isso pode envolver:
-    - **Detecção de Danos:** Analisar imagens/vídeos enviados pelos clientes para identificar e classificar tipos de danos em equipamentos (ex: tela quebrada, arranhões, amassados).
-    - **Reconhecimento de Componentes:** Identificar componentes internos de dispositivos para auxiliar no diagnóstico.
-    - **Verificação de Autenticidade:** (Opcional) Analisar imagens de peças para verificar se são originais ou falsificadas.
-- **Fluxo de Integração:**
-    - Cliente faz upload de imagem/vídeo do problema.
-    - Backend envia a mídia para o serviço de Computer Vision.
-    - O serviço retorna o resultado da análise (ex: tipo de dano, componentes identificados).
-    - O resultado é integrado ao diagnóstico inicial da IA e exibido para o técnico/cliente.
-- **Treinamento de Modelos:** Necessidade de coletar e rotular um grande volume de dados (imagens de equipamentos danificados) para treinar modelos de Machine Learning personalizados.
-- **Otimização:** Otimizar modelos para inferência rápida, considerando que podem ser executados em servidores com recursos limitados.
+## 5) Critérios de aceite por papel
 
+### Cliente
+- [ ] Consegue abrir solicitação com descrição, mídia e localização.
+- [ ] Recebe múltiplos orçamentos e consegue comparar.
+- [ ] Aceita um orçamento e acompanha execução.
 
+### Técnico/Empresa
+- [ ] Consegue descobrir solicitações compatíveis no marketplace.
+- [ ] Consegue enviar proposta com preço e prazo.
+- [ ] Consegue conversar com cliente após proposta/aceite conforme regra.
 
+### Admin
+- [ ] Consegue auditar solicitações, propostas e usuários.
+- [ ] Consegue moderar conteúdo e bloquear contas.
+- [ ] Consegue visualizar KPIs reais de operação.
 
-### Detalhes para Sistema de Agendamento Avançado
-- **Funcionalidades:**
-    - **Disponibilidade de Técnicos:** Permitir que técnicos definam seus horários de trabalho, disponibilidade e bloqueiem horários para compromissos pessoais.
-    - **Agendamento pelo Cliente:** Clientes podem visualizar a disponibilidade dos técnicos e agendar serviços diretamente pela plataforma.
-    - **Agendamento Recorrente:** (Opcional) Para serviços de manutenção periódica.
-    - **Buffer Time:** Configurar tempo de buffer entre agendamentos para deslocamento do técnico.
-    - **Confirmação e Lembretes:** Envio automático de confirmações e lembretes via email, SMS ou WhatsApp (integrado com a funcionalidade de WhatsApp Business).
-    - **Reagendamento e Cancelamento:** Clientes e técnicos podem reagendar ou cancelar agendamentos, com regras de antecedência.
-    - **Integração com Calendários Externos:** Sincronização com Google Calendar, Outlook Calendar para técnicos e empresas.
-- **Backend:**
-    - **Modelagem de Dados:** Criar modelos para agendamentos, disponibilidade de técnicos, serviços e horários.
-    - **Lógica de Agendamento:** Implementar algoritmos para verificar disponibilidade, evitar conflitos e otimizar rotas (futuro).
-    - **APIs:** Expor endpoints para criação, consulta, atualização e cancelamento de agendamentos.
-- **Frontend:**
-    - **Interface de Calendário:** Componente de calendário interativo para visualização e seleção de horários.
-    - **Fluxo de Agendamento:** Interface intuitiva para o cliente selecionar serviço, técnico, data e hora.
-    - **Dashboard de Agendamentos:** Visualização de agendamentos futuros e passados para clientes e técnicos.
-- **Considerações:**
-    - **Fuso Horário:** Gerenciamento correto de fusos horários para agendamentos.
-    - **Notificações:** Utilizar o sistema de notificações push para alertas de novos agendamentos ou alterações.
+---
 
+## 6) Sequência recomendada de execução (roadmap curto)
 
+### Sprint 1 (fundação)
+- [ ] Corrigir inconsistências de modelo/rotas (P0).
+- [ ] Ativar autenticação real.
+- [ ] Consolidar CRUD de tickets com regras de ownership.
 
+### Sprint 2 (marketplace)
+- [ ] Implementar propostas e aceite.
+- [ ] Implementar telas de marketplace e comparação de propostas.
+- [ ] Notificações básicas de nova proposta/aceite.
 
-### Detalhes para Desenvolvimento de Relatórios e Analytics Avançados
-- **Objetivo:** Fornecer insights sobre o desempenho da plataforma, técnicos, chamados e usuários, auxiliando na tomada de decisões.
-- **Métricas e KPIs (Key Performance Indicators):**
-    - **Gerais da Plataforma:** Número total de usuários (por tipo), chamados (abertos, resolvidos, em andamento), tempo médio de resolução de chamados, faturamento (se o sistema de pagamento for implementado).
-    - **Técnicos/Empresas:** Número de chamados atendidos, tempo médio de atendimento, avaliações (rating), faturamento gerado, especialidades mais demandadas.
-    - **Chamados:** Tipos de problemas mais frequentes, dispositivos mais problemáticos, prioridades, localização dos chamados.
-- **Ferramentas de Visualização:**
-    - **Dashboards Interativos:** Utilizar bibliotecas de visualização de dados no frontend (ex: Chart.js, Recharts, D3.js) para criar dashboards dinâmicos e personalizáveis.
-    - **Relatórios Exportáveis:** Permitir a exportação de relatórios em formatos como PDF, CSV, Excel.
-- **Backend:**
-    - **Coleta de Dados:** Garantir que todos os dados relevantes para as métricas estejam sendo coletados e armazenados no banco de dados.
-    - **APIs de Relatórios:** Criar endpoints no Flask para agregar e retornar os dados necessários para os relatórios e dashboards.
-    - **Processamento de Dados:** Implementar lógica para calcular métricas complexas e otimizar consultas para grandes volumes de dados.
-- **Acesso:** Definir níveis de acesso aos relatórios (ex: administradores têm acesso total, empresas veem dados da sua equipe, técnicos veem seus próprios dados).
-- **Alertas:** (Opcional) Configurar alertas para anomalias ou metas atingidas (ex: número de chamados abertos acima do normal).
+### Sprint 3 (confiabilidade)
+- [ ] Testes E2E do fluxo crítico.
+- [ ] Observabilidade e métricas.
+- [ ] Hardening de segurança.
 
+### Sprint 4 (escala e monetização)
+- [ ] Pagamentos reais.
+- [ ] Analytics avançado.
+- [ ] Otimizações de busca e ranqueamento.
+
+---
+
+## 7) Riscos e mitigação
+- [ ] **Risco:** avanço em features sem corrigir contrato de dados.
+  - **Mitigação:** congelar novas features até fechar P0.
+- [ ] **Risco:** front continuar com comportamento mock e mascarar erros reais.
+  - **Mitigação:** feature flags para migração API-first.
+- [ ] **Risco:** integrações externas (WhatsApp/pagamento/IA) quebrarem fluxo central.
+  - **Mitigação:** fallback local + filas + retry idempotente.
+
+---
+
+## 8) Checklist final de “pronto para produção”
+- [ ] Sem campos órfãos/inexistentes em rotas/modelos.
+- [ ] Autenticação/autorização robustas.
+- [ ] Fluxo completo: solicitação → propostas → aceite → conclusão.
+- [ ] Logs e monitoramento básicos ativos.
+- [ ] Testes automatizados passando no CI.
+- [ ] Documentação operacional e de API atualizada.
 

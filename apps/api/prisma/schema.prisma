@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserType {
+  client
+  technician
+  company
+  admin
+}
+
+enum TicketStatus {
+  open
+  quoted
+  in_progress
+  resolved
+  closed
+  cancelled
+}
+
+enum ProposalStatus {
+  pending
+  accepted
+  rejected
+  withdrawn
+}
+
+model User {
+  id            String      @id @default(cuid())
+  name          String
+  email         String      @unique
+  passwordHash  String
+  userType      UserType
+  phone         String?
+  specialties   String[]
+  rating        Float       @default(0)
+  totalReviews  Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  clientTickets Ticket[]    @relation("ClientTickets")
+  assigned      Ticket[]    @relation("AssignedTickets")
+  proposals     Proposal[]
+}
+
+model Ticket {
+  id            String        @id @default(cuid())
+  title         String
+  description   String
+  status        TicketStatus  @default(open)
+  locationText  String
+  clientId      String
+  assignedToId  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  client        User          @relation("ClientTickets", fields: [clientId], references: [id])
+  assignedTo    User?         @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  proposals     Proposal[]
+}
+
+model Proposal {
+  id             String         @id @default(cuid())
+  ticketId       String
+  providerId     String
+  message        String
+  estimatedValue Decimal?
+  status         ProposalStatus @default(pending)
+  createdAt      DateTime       @default(now())
+
+  ticket         Ticket         @relation(fields: [ticketId], references: [id])
+  provider       User           @relation(fields: [providerId], references: [id])
+}
