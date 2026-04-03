@@ -6,6 +6,8 @@ import { AppController } from './app.controller';
 import { PrismaModule } from './prisma/prisma.module';
 import { TicketsModule } from './tickets/tickets.module';
 import { ProposalsModule } from './proposals/proposals.module';
+import { AuthModule } from './auth/auth.module';
+import { ChatModule } from './chat/chat.module';
 
 @Module({
   imports: [
@@ -24,8 +26,10 @@ import { ProposalsModule } from './proposals/proposals.module';
       })
     }),
     PrismaModule,
+    AuthModule,
     TicketsModule,
-    ProposalsModule
+    ProposalsModule,
+    ChatModule
   ],
   controllers: [AppController]
 })

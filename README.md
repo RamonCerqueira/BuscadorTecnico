@@ -54,6 +54,11 @@ pnpm dev
 
 ## Endpoints já implementados (P1)
 
+### Auth
+- `POST /api/auth/register` cria conta e retorna par de tokens
+- `POST /api/auth/login` autentica usuário
+- `POST /api/auth/refresh` renova access token usando refresh token
+
 ### Tickets
 - `POST /api/tickets` cria solicitação
 - `GET /api/tickets` lista solicitações (filtro opcional `status`)
@@ -65,12 +70,16 @@ pnpm dev
 - `POST /api/proposals/:proposalId/accept` aceita proposta (somente cliente dono)
 - `POST /api/proposals/:proposalId/reject` rejeita proposta (somente cliente dono)
 
+### Chat por solicitação (P1.1)
+- `GET /api/tickets/:ticketId/messages` lista mensagens da solicitação
+- `POST /api/tickets/:ticketId/messages` envia mensagem (cliente dono ou prestador atribuído)
+
 ---
 
 ## Próximos passos da migração
 
-1. Implementar autenticação JWT + refresh token + RBAC no NestJS.
+1. Adicionar RBAC/guards em rotas sensíveis.
 2. Migrar telas do produto para App Router com consumo real da API.
-3. Adicionar chat por ticket e notificações em tempo real.
+3. Adicionar notificações em tempo real com WebSocket.
 4. Adicionar testes (unit, integration e e2e).
 5. Configurar deploy contínuo (Vercel + serviço cloud para API/DB/Redis).

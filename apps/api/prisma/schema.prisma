@@ -46,6 +46,8 @@ model User {
   clientTickets Ticket[]    @relation("ClientTickets")
   assigned      Ticket[]    @relation("AssignedTickets")
   proposals     Proposal[]
+  messages      TicketMessage[] @relation("SenderMessages")
+  refreshTokens RefreshToken[]
 }
 
 model Ticket {
@@ -62,6 +64,7 @@ model Ticket {
   client        User          @relation("ClientTickets", fields: [clientId], references: [id])
   assignedTo    User?         @relation("AssignedTickets", fields: [assignedToId], references: [id])
   proposals     Proposal[]
+  messages      TicketMessage[]
 }
 
 model Proposal {
@@ -75,4 +78,26 @@ model Proposal {
 
   ticket         Ticket         @relation(fields: [ticketId], references: [id])
   provider       User           @relation(fields: [providerId], references: [id])
+}
+
+model TicketMessage {
+  id         String   @id @default(cuid())
+  ticketId   String
+  senderId   String
+  content    String
+  createdAt  DateTime @default(now())
+
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+  sender     User     @relation("SenderMessages", fields: [senderId], references: [id])
+}
+
+model RefreshToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  revokedAt  DateTime?
+
+  user       User     @relation(fields: [userId], references: [id])
 }

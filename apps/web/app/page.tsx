@@ -13,7 +13,9 @@ export default function HomePage() {
         <Button asChild>
           <Link href="/marketplace">Explorar Marketplace</Link>
         </Button>
-        <Button variant="outline">Abrir Solicitação</Button>
+        <Button variant="outline" asChild>
+          <Link href="/login">Login</Link>
+        </Button>
       </div>
     </main>
   );
