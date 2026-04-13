@@ -1,18 +1,32 @@
 from flask import Blueprint, request, jsonify
 from src.models.user import db, User
 from datetime import datetime
-import hashlib
+import os
 import json
+from werkzeug.security import generate_password_hash, check_password_hash
+from itsdangerous import URLSafeTimedSerializer, BadSignature, SignatureExpired
 
 auth_bp = Blueprint('auth', __name__)
 
+def _token_serializer():
+    secret = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
+    return URLSafeTimedSerializer(secret_key=secret, salt='techfix-auth')
+
 def hash_password(password):
-    """Hash da senha usando SHA256"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Hash de senha com algoritmo adaptativo do Werkzeug."""
+    return generate_password_hash(password)
 
 def verify_password(password, hashed):
-    """Verificar senha"""
-    return hash_password(password) == hashed
+    """Verificar senha usando hash adaptativo."""
+    return check_password_hash(hashed, password)
+
+def generate_auth_token(user_id):
+    serializer = _token_serializer()
+    return serializer.dumps({'user_id': user_id})
+
+def decode_auth_token(token, max_age_seconds=60 * 60 * 24 * 7):
+    serializer = _token_serializer()
+    return serializer.loads(token, max_age=max_age_seconds)
 
 @auth_bp.route('/auth/login', methods=['POST'])
 def login():
@@ -39,7 +53,7 @@ def login():
         return jsonify({
             'success': True,
             'user': user.to_dict(),
-            'token': f'mock_token_{user.id}'  # Token mockado para demonstração
+            'token': generate_auth_token(user.id)
         })
         
     except Exception as e:
@@ -74,7 +88,7 @@ def register():
         return jsonify({
             'success': True,
             'user': user.to_dict(),
-            'token': f'mock_token_{user.id}'
+            'token': generate_auth_token(user.id)
         }), 201
         
     except Exception as e:
@@ -166,7 +180,7 @@ def demo_login():
         return jsonify({
             'success': True,
             'user': user.to_dict(),
-            'token': f'mock_token_{user.id}'
+            'token': generate_auth_token(user.id)
         })
         
     except Exception as e:
@@ -180,10 +194,16 @@ def verify_token():
         data = request.get_json()
         token = data.get('token')
         
-        if not token or not token.startswith('mock_token_'):
+        if not token:
             return jsonify({'success': False, 'error': 'Token inválido'}), 401
-        
-        user_id = int(token.replace('mock_token_', ''))
+
+        # Compatibilidade retroativa com token antigo de demonstração
+        if token.startswith('mock_token_'):
+            user_id = int(token.replace('mock_token_', ''))
+        else:
+            payload = decode_auth_token(token)
+            user_id = payload.get('user_id')
+
         user = User.query.get(user_id)
         
         if not user or not user.is_active:
@@ -194,6 +214,10 @@ def verify_token():
             'user': user.to_dict()
         })
         
+    except SignatureExpired:
+        return jsonify({'success': False, 'error': 'Token expirado'}), 401
+    except BadSignature:
+        return jsonify({'success': False, 'error': 'Token inválido'}), 401
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -258,4 +282,3 @@ def change_password():
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
-

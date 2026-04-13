@@ -1,0 +1,13 @@
+{
+  "name": "buscador-tecnico-monorepo",
+  "private": true,
+  "version": "1.0.0",
+  "packageManager": "pnpm@10.4.1",
+  "scripts": {
+    "dev": "pnpm -r --parallel dev",
+    "build": "pnpm -r build",
+    "vercel-build": "pnpm --filter @buscador/web build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  }
+}
