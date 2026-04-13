@@ -14,6 +14,5 @@ export class CreateTicketDto {
   locationText!: string;
 
   @IsString()
-  @IsNotEmpty()
-  clientId!: string;
+  clientId?: string;
 }

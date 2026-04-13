@@ -14,10 +14,8 @@ type Proposal = {
 
 export default function TicketProposalsPage({ params }: { params: { ticketId: string } }) {
   const queryClient = useQueryClient();
-  const [providerId, setProviderId] = useState('');
   const [message, setMessage] = useState('');
   const [estimatedValue, setEstimatedValue] = useState('');
-  const [clientId, setClientId] = useState('');
 
   const proposalsQuery = useQuery({
     queryKey: ['proposals', params.ticketId],
@@ -27,7 +25,6 @@ export default function TicketProposalsPage({ params }: { params: { ticketId: st
   const createProposal = useMutation({
     mutationFn: () =>
       apiPost(`/tickets/${params.ticketId}/proposals`, {
-        providerId,
         message,
         estimatedValue: estimatedValue ? Number(estimatedValue) : undefined
       }),
@@ -35,12 +32,12 @@ export default function TicketProposalsPage({ params }: { params: { ticketId: st
   });
 
   const acceptProposal = useMutation({
-    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/accept`, { clientId }),
+    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/accept`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals', params.ticketId] })
   });
 
   const rejectProposal = useMutation({
-    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/reject`, { clientId }),
+    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/reject`, {}),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['proposals', params.ticketId] })
   });
 
@@ -50,20 +47,12 @@ export default function TicketProposalsPage({ params }: { params: { ticketId: st
 
       <section className="glass-card space-y-3 p-5">
         <h2 className="text-lg font-semibold">Enviar proposta</h2>
-        <div className="grid gap-3 md:grid-cols-2">
-          <input
-            className="rounded-xl border border-white/10 bg-slate-900/60 p-3"
-            placeholder="ID do técnico/empresa"
-            value={providerId}
-            onChange={(e) => setProviderId(e.target.value)}
-          />
-          <input
-            className="rounded-xl border border-white/10 bg-slate-900/60 p-3"
-            placeholder="Valor estimado"
-            value={estimatedValue}
-            onChange={(e) => setEstimatedValue(e.target.value)}
-          />
-        </div>
+        <input
+          className="rounded-xl border border-white/10 bg-slate-900/60 p-3"
+          placeholder="Valor estimado"
+          value={estimatedValue}
+          onChange={(e) => setEstimatedValue(e.target.value)}
+        />
         <textarea
           className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
           placeholder="Mensagem da proposta"
@@ -76,16 +65,6 @@ export default function TicketProposalsPage({ params }: { params: { ticketId: st
         >
           {createProposal.isPending ? 'Enviando...' : 'Enviar proposta'}
         </button>
-      </section>
-
-      <section className="glass-card space-y-3 p-5">
-        <h2 className="text-lg font-semibold">Ações do cliente</h2>
-        <input
-          className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
-          placeholder="ID do cliente dono do ticket"
-          value={clientId}
-          onChange={(e) => setClientId(e.target.value)}
-        />
       </section>
 
       <section className="grid gap-4 md:grid-cols-2">

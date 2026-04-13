@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 type SessionState = {
   token: string | null;
@@ -7,9 +8,14 @@ type SessionState = {
   clearSession: () => void;
 };
 
-export const useSessionStore = create<SessionState>((set) => ({
-  token: null,
-  userType: null,
-  setSession: (token, userType) => set({ token, userType }),
-  clearSession: () => set({ token: null, userType: null })
-}));
+export const useSessionStore = create<SessionState>()(
+  persist(
+    (set) => ({
+      token: null,
+      userType: null,
+      setSession: (token, userType) => set({ token, userType }),
+      clearSession: () => set({ token: null, userType: null })
+    }),
+    { name: 'buscador-session' }
+  )
+);

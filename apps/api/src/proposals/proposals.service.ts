@@ -3,11 +3,13 @@ import { ProposalStatus, TicketStatus, UserType } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateProposalDto } from './dto/create-proposal.dto';
 
+type CreateProposalInput = CreateProposalDto & { providerId: string };
+
 @Injectable()
 export class ProposalsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(ticketId: string, body: CreateProposalDto) {
+  async create(ticketId: string, body: CreateProposalInput) {
     const [ticket, provider] = await Promise.all([
       this.prisma.ticket.findUnique({ where: { id: ticketId } }),
       this.prisma.user.findUnique({ where: { id: body.providerId } })

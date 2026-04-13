@@ -64,6 +64,7 @@ Consulte o guia: [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
 - `POST /api/auth/register` cria conta e retorna par de tokens
 - `POST /api/auth/login` autentica usuário
 - `POST /api/auth/refresh` renova access token usando refresh token
+- Rotas de negócio usam `Authorization: Bearer <accessToken>`
 
 ### Tickets
 - `POST /api/tickets` cria solicitação
@@ -84,8 +85,6 @@ Consulte o guia: [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
 
 ## Próximos passos da migração
 
-1. Adicionar RBAC/guards em rotas sensíveis.
-2. Migrar telas do produto para App Router com consumo real da API.
-3. Adicionar notificações em tempo real com WebSocket.
-4. Adicionar testes (unit, integration e e2e).
-5. Configurar deploy contínuo (Vercel + serviço cloud para API/DB/Redis).
+1. Adicionar notificações em tempo real com WebSocket.
+2. Adicionar testes (unit, integration e e2e).
+3. Configurar deploy contínuo (Vercel + serviço cloud para API/DB/Redis).

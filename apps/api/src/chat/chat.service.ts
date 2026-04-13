@@ -2,6 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 
+type CreateMessageInput = CreateMessageDto & { senderId: string };
+
 @Injectable()
 export class ChatService {
   constructor(private readonly prisma: PrismaService) {}
@@ -16,7 +18,7 @@ export class ChatService {
     });
   }
 
-  async create(ticketId: string, body: CreateMessageDto) {
+  async create(ticketId: string, body: CreateMessageInput) {
     const [ticket, sender] = await Promise.all([
       this.prisma.ticket.findUnique({ where: { id: ticketId } }),
       this.prisma.user.findUnique({ where: { id: body.senderId } })

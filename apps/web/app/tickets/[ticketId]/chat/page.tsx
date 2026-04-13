@@ -13,7 +13,6 @@ type TicketMessage = {
 
 export default function TicketChatPage({ params }: { params: { ticketId: string } }) {
   const queryClient = useQueryClient();
-  const [senderId, setSenderId] = useState('');
   const [content, setContent] = useState('');
 
   const messagesQuery = useQuery({
@@ -22,7 +21,7 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
   });
 
   const sendMutation = useMutation({
-    mutationFn: () => apiPost(`/tickets/${params.ticketId}/messages`, { senderId, content }),
+    mutationFn: () => apiPost(`/tickets/${params.ticketId}/messages`, { content }),
     onSuccess: () => {
       setContent('');
       queryClient.invalidateQueries({ queryKey: ['messages', params.ticketId] });
@@ -49,12 +48,6 @@ export default function TicketChatPage({ params }: { params: { ticketId: string 
       </section>
 
       <section className="glass-card space-y-3 p-4">
-        <input
-          className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
-          placeholder="Seu ID de usuário"
-          value={senderId}
-          onChange={(e) => setSenderId(e.target.value)}
-        />
         <textarea
           className="w-full rounded-xl border border-white/10 bg-slate-900/60 p-3"
           placeholder="Digite sua mensagem"
