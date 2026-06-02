@@ -9,9 +9,12 @@ type FileUploadProps = {
   onUpload: (urls: string[]) => void;
   maxFiles?: number;
   label?: string;
+  variant?: 'grid' | 'icon';
+  children?: React.ReactNode;
+  className?: string;
 };
 
-export function FileUpload({ onUpload, maxFiles = 3, label = 'Anexar evidências' }: FileUploadProps) {
+export function FileUpload({ onUpload, maxFiles = 3, label = 'Anexar evidências', variant = 'grid', children, className }: FileUploadProps) {
   const [files, setFiles] = useState<{ url: string; uploading: boolean }[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -73,8 +76,26 @@ export function FileUpload({ onUpload, maxFiles = 3, label = 'Anexar evidências
     setFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
+  if (variant === 'icon') {
+    return (
+      <>
+        <div className={className} onClick={() => fileInputRef.current?.click()}>
+          {children}
+        </div>
+        <input
+          type="file"
+          ref={fileInputRef}
+          onChange={handleFileChange}
+          accept="image/*"
+          multiple={maxFiles > 1}
+          className="hidden"
+        />
+      </>
+    );
+  }
+
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${className || ''}`}>
       <label className="text-sm font-medium text-slate-300">{label}</label>
       
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">

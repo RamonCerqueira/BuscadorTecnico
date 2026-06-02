@@ -23,5 +23,10 @@ export class CreateTicketDto {
   category?: string;
 
   @IsString()
+  @IsOptional()
   clientId?: string;
+
+  @IsString()
+  @IsOptional()
+  aiInsights?: string;
 }

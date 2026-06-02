@@ -20,7 +20,8 @@ export class AuthService {
   ) {}
 
   async register(input: RegisterDto, ip?: string, userAgent?: string) {
-    const exists = await this.prisma.user.findUnique({ where: { email: input.email } });
+    const emailNormalized = input.email.toLowerCase().trim();
+    const exists = await this.prisma.user.findUnique({ where: { email: emailNormalized } });
     if (exists) throw new BadRequestException('Email já cadastrado');
 
     const passwordHash = await hash(input.password, 12);
@@ -28,10 +29,15 @@ export class AuthService {
     const user = await this.prisma.user.create({
       data: {
         name: input.name,
-        email: input.email,
+        email: emailNormalized,
         passwordHash,
         userType: input.userType,
         bio: input.bio,
+        document: input.document,
+        address: input.address,
+        city: input.city,
+        state: input.state,
+        zipCode: input.zipCode,
         specialties: input.specialties || [],
         certificates: input.certificates || [],
         acceptedTermsAt: input.acceptTerms ? new Date() : null,
@@ -50,7 +56,8 @@ export class AuthService {
   }
 
   async login(input: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: input.email } });
+    const emailNormalized = input.email.toLowerCase().trim();
+    const user = await this.prisma.user.findUnique({ where: { email: emailNormalized } });
     if (!user) throw new UnauthorizedException('Credenciais inválidas');
 
     const ok = await compare(input.password, user.passwordHash);
@@ -120,14 +127,15 @@ export class AuthService {
       throw new Error('No user from google');
     }
 
+    const emailNormalized = req.user.email.toLowerCase().trim();
     let user = await this.prisma.user.findUnique({
-      where: { email: req.user.email }
+      where: { email: emailNormalized }
     });
 
     if (!user) {
       user = await this.prisma.user.create({
         data: {
-          email: req.user.email,
+          email: emailNormalized,
           name: `${req.user.firstName} ${req.user.lastName}`,
           passwordHash: '', 
           userType: UserType.client, 

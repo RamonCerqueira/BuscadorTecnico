@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery } from '@tanstack/react-query';
+import { apiGet } from '@/lib/api/client';
+import { useRouter } from 'next/navigation';
 import { 
   Search, 
   Star, 
@@ -14,11 +17,34 @@ import {
   Briefcase
 } from 'lucide-react';
 
-const MOCK_COMPANIES = [
-  { id: 1, name: 'ElectroFix Ltda', rating: 4.8, reviews: 124, category: 'Elétrica', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop' },
-  { id: 2, name: 'HidroPrime Soluções', rating: 4.5, reviews: 89, category: 'Hidráulica', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop' },
-  { id: 3, name: 'ClimaBom Ar Condicionado', rating: 4.9, reviews: 256, category: 'Climatização', image: 'https://images.unsplash.com/photo-1599427303058-f06cb9e1307b?q=80&w=2070&auto=format&fit=crop' },
-  { id: 4, name: 'InforTech Serviços', rating: 4.7, reviews: 67, category: 'Informática', image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop' },
+const CATEGORY_IMAGES: Record<string, string> = {
+  'Elétrica': 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop',
+  'Hidráulica': 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop',
+  'Climatização': 'https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=2069&auto=format&fit=crop',
+  'Informática': 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop',
+  'Limpeza': 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?q=80&w=2070&auto=format&fit=crop',
+  'Reformas': 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?q=80&w=2070&auto=format&fit=crop',
+  'Automação': 'https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?q=80&w=2070&auto=format&fit=crop',
+};
+
+const DEFAULT_BANNER = 'https://images.unsplash.com/photo-1581092921461-eab62e97a780?q=80&w=2070&auto=format&fit=crop';
+
+interface CompanyItem {
+  id: string;
+  name: string;
+  rating: number;
+  reviews: number;
+  category: string;
+  image: string;
+  isReal: boolean;
+  avatarUrl?: string;
+}
+
+const MOCK_COMPANIES: CompanyItem[] = [
+  { id: 'mock-1', name: 'ElectroFix Ltda', rating: 4.8, reviews: 124, category: 'Elétrica', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop', isReal: false },
+  { id: 'mock-2', name: 'HidroPrime Soluções', rating: 4.5, reviews: 89, category: 'Hidráulica', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop', isReal: false },
+  { id: 'mock-3', name: 'ClimaBom Ar Condicionado', rating: 4.9, reviews: 256, category: 'Climatização', image: 'https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=2069&auto=format&fit=crop', isReal: false },
+  { id: 'mock-4', name: 'InforTech Serviços', rating: 4.7, reviews: 67, category: 'Informática', image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop', isReal: false },
 ];
 
 const MOCK_CHATS = [
@@ -54,9 +80,63 @@ const MOCK_CHATS = [
   }
 ];
 
+function shuffleArray<T>(array: T[]): T[] {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
 export default function HomePage() {
+  const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
-  // Marquee needs no interval state
+  const [companies, setCompanies] = useState<any[]>([]);
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchTerm.trim()) {
+      router.push(`/companies?search=${encodeURIComponent(searchTerm.trim())}`);
+    }
+  };
+
+  const { data: realProfessionals, isLoading } = useQuery({
+    queryKey: ['home-professionals'],
+    queryFn: () => apiGet<{ data: any[] }>('/users/professionals').catch(() => ({ data: [] })),
+  });
+
+  useEffect(() => {
+    if (!isLoading && realProfessionals?.data) {
+      const dbProfessionals: CompanyItem[] = realProfessionals.data.map((p) => {
+        const specialty = p.specialties?.[0] || 'Geral';
+        const bannerImage = CATEGORY_IMAGES[specialty] || DEFAULT_BANNER;
+        return {
+          id: p.id,
+          name: p.name,
+          rating: p.rating || 5.0,
+          reviews: p.totalReviews || 0,
+          category: specialty,
+          image: bannerImage,
+          avatarUrl: p.avatarUrl || undefined,
+          isReal: true,
+        };
+      });
+
+      const mockFallback = MOCK_COMPANIES.map((c) => ({ ...c, isReal: false }));
+      
+      const combined = [...dbProfessionals];
+      mockFallback.forEach((mock) => {
+        if (combined.length < 4 && !combined.some((p) => p.name === mock.name)) {
+          combined.push(mock);
+        }
+      });
+
+      setCompanies(shuffleArray(combined).slice(0, 4));
+    } else if (!isLoading) {
+      setCompanies(shuffleArray(MOCK_COMPANIES).slice(0, 4));
+    }
+  }, [realProfessionals, isLoading]);
 
 
   return (
@@ -85,28 +165,32 @@ export default function HomePage() {
             className="relative group max-w-2xl mx-auto"
           >
             <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-            <div className="relative flex flex-col sm:flex-row items-center bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl p-2 shadow-2xl gap-2 sm:gap-0">
+            <form onSubmit={handleSearchSubmit} className="relative flex flex-col sm:flex-row items-center bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl p-2 shadow-2xl gap-2 sm:gap-0">
               <div className="hidden sm:block pl-4 text-slate-400">
                 <Search size={24} />
               </div>
               <input 
                 type="text" 
                 placeholder="Ex: Ar condicionado, Eletricista..."
-                className="w-full sm:flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 sm:py-4 text-base sm:text-lg font-medium outline-none text-center sm:text-left"
+                className="w-full sm:flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 sm:py-4 text-base sm:text-lg font-medium outline-none text-center sm:text-left text-slate-900 dark:text-white"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 sm:py-4 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/25">
+              <button type="submit" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 sm:py-4 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/25">
                 Buscar
               </button>
-            </div>
+            </form>
           </motion.div>
 
           <div className="flex flex-wrap justify-center gap-3 pt-4">
             {['Ar Condicionado', 'Elétrica', 'Hidráulica', 'Limpeza', 'Reformas'].map((cat) => (
-              <button key={cat} className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-bold hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+              <Link 
+                href={`/companies?category=${encodeURIComponent(cat)}`}
+                key={cat} 
+                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 transition-all text-slate-700 dark:text-slate-300 active:scale-95"
+              >
                 {cat}
-              </button>
+              </Link>
             ))}
           </div>
         </div>
@@ -123,40 +207,60 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {MOCK_COMPANIES.map((company, i) => (
-              <motion.div
-                key={company.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.1 }}
-                className="group relative bg-white dark:bg-[#111] rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-1"
-              >
-                <div className="h-48 overflow-hidden relative">
-                  <img src={company.image} alt={company.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
-                  <div className="absolute top-4 left-4">
-                    <span className="bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 dark:border-white/10">
-                      {company.category}
-                    </span>
+            {companies.length === 0 ? (
+              Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="bg-white dark:bg-[#111] rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden animate-pulse h-[360px]">
+                  <div className="h-48 bg-slate-200 dark:bg-white/5" />
+                  <div className="p-6 space-y-4">
+                    <div className="h-6 bg-slate-200 dark:bg-white/5 rounded w-2/3" />
+                    <div className="h-4 bg-slate-200 dark:bg-white/5 rounded w-1/2" />
+                    <div className="h-10 bg-slate-200 dark:bg-white/5 rounded-xl w-full" />
                   </div>
                 </div>
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="font-bold text-lg">{company.name}</h3>
-                    <div className="flex items-center gap-1 text-amber-500">
-                      <Star size={16} className="fill-current" />
-                      <span className="text-sm font-black text-slate-900 dark:text-white">{company.rating}</span>
+              ))
+            ) : (
+              companies.map((company, i) => (
+                <motion.div
+                  key={company.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  className="group relative bg-white dark:bg-[#111] rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden hover:shadow-2xl hover:shadow-blue-500/10 transition-all duration-500 hover:-translate-y-1"
+                >
+                  <div className="h-48 overflow-hidden relative">
+                    <img src={company.image} alt={company.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                    <div className="absolute top-4 left-4">
+                      <span className="bg-white/90 dark:bg-black/80 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border border-black/5 dark:border-white/10">
+                        {company.category}
+                      </span>
                     </div>
+                    {company.avatarUrl && (
+                      <div className="absolute bottom-4 right-4 h-12 w-12 rounded-2xl border-2 border-white dark:border-[#111] overflow-hidden bg-slate-100 dark:bg-[#222] shadow-lg z-10">
+                        <img src={company.avatarUrl} alt={company.name} className="w-full h-full object-cover" />
+                      </div>
+                    )}
                   </div>
-                  <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mb-6">
-                    <span className="flex items-center gap-1"><Users size={14} /> {company.reviews} avaliações</span>
-                    <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-500" /> Verificada</span>
+                  <div className="p-6">
+                    <div className="flex items-center justify-between mb-2 gap-2">
+                      <h3 className="font-bold text-lg truncate flex-1" title={company.name}>{company.name}</h3>
+                      <div className="flex items-center gap-1 text-amber-500 shrink-0">
+                        <Star size={16} className="fill-current" />
+                        <span className="text-sm font-black text-slate-900 dark:text-white">{company.rating}</span>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-4 text-xs font-bold text-slate-500 mb-6">
+                      <span className="flex items-center gap-1"><Users size={14} /> {company.reviews} avaliações</span>
+                      <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-500" /> Verificada</span>
+                    </div>
+                    <Link href={company.isReal ? `/profile/${company.id}` : `/companies`}>
+                      <button className="w-full bg-slate-100 dark:bg-white/5 group-hover:bg-blue-600 group-hover:text-white py-3 rounded-xl text-sm font-black transition-all">
+                        Ver Perfil
+                      </button>
+                    </Link>
                   </div>
-                  <button className="w-full bg-slate-100 dark:bg-white/5 group-hover:bg-blue-600 group-hover:text-white py-3 rounded-xl text-sm font-black transition-all">
-                    Ver Perfil
-                  </button>
-                </div>
-              </motion.div>
-            ))}
+                </motion.div>
+              ))
+            )}
           </div>
         </div>
       </section>

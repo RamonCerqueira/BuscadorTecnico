@@ -20,7 +20,7 @@ export class TicketsService {
   ) {}
 
   async create(data: CreateTicketDto & { clientId: string }) {
-    const aiInsights = await this.aiService.getDiagnostic(data.description);
+    const aiInsights = data.aiInsights || await this.aiService.getDiagnostic(data.description);
 
     const ticket = await this.prisma.ticket.create({
       data: {
@@ -62,6 +62,24 @@ export class TicketsService {
     return ticket;
   }
 
+  async findOne(id: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id },
+      include: {
+        client: { select: { id: true, name: true, avatarUrl: true } },
+        assignedTo: { select: { id: true, name: true, avatarUrl: true, rating: true, totalReviews: true } },
+        proposals: {
+          include: {
+            provider: { select: { id: true, name: true, avatarUrl: true, rating: true, totalReviews: true } }
+          }
+        }
+      }
+    });
+
+    if (!ticket) throw new NotFoundException('Chamado não encontrado');
+    return ticket;
+  }
+
   async listByClient(clientId: string, status?: TicketStatus, cursor?: string, limit = 20) {
     const items = await this.prisma.ticket.findMany({
       take: limit + 1,
@@ -75,6 +93,64 @@ export class TicketsService {
       include: {
         client: { select: { id: true, name: true } },
         assignedTo: { select: { id: true, name: true } }
+      }
+    });
+
+    let nextCursor: string | undefined = undefined;
+    if (items.length > limit) {
+      const nextItem = items.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      data: items,
+      nextCursor
+    };
+  }
+
+  async listByProvider(providerId: string, status?: TicketStatus, cursor?: string, limit = 20) {
+    const items = await this.prisma.ticket.findMany({
+      take: limit + 1,
+      where: {
+        assignedToId: providerId,
+        status: status ? status : undefined
+      },
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        client: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } }
+      }
+    });
+
+    let nextCursor: string | undefined = undefined;
+    if (items.length > limit) {
+      const nextItem = items.pop();
+      nextCursor = nextItem?.id;
+    }
+
+    return {
+      data: items,
+      nextCursor
+    };
+  }
+
+  async listProposalsByProvider(providerId: string, cursor?: string, limit = 20) {
+    const items = await this.prisma.proposal.findMany({
+      take: limit + 1,
+      where: {
+        providerId
+      },
+      cursor: cursor ? { id: cursor } : undefined,
+      skip: cursor ? 1 : 0,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        ticket: {
+          include: {
+            client: { select: { id: true, name: true } }
+          }
+        }
       }
     });
 

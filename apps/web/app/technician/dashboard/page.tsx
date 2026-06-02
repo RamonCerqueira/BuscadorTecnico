@@ -75,7 +75,7 @@ export default function TechnicianDashboardPage() {
           <p className="text-slate-500 dark:text-slate-400 text-lg font-medium">Gerencie seus lucros, chamados e reputação na palma da mão.</p>
         </div>
         
-        <Link href="/marketplace" className="btn-primary flex items-center gap-2 px-8 py-4 shadow-blue-600/20">
+        <Link href="/opportunities" className="btn-primary flex items-center gap-2 px-8 py-4 shadow-blue-600/20">
           <Briefcase size={18} /> Ver Vagas no Marketplace
         </Link>
       </header>

@@ -88,7 +88,7 @@ export default function AiDiagnosticPage() {
               <div className="mt-8 pt-6 border-t border-white/10">
                  <p className="text-xs text-slate-500 mb-4 italic text-center">Tudo certo? Agora publique seu chamado para receber orçamentos de profissionais reais.</p>
                  <Link 
-                    href={`/tickets/new?desc=${encodeURIComponent(description)}`}
+                    href={`/tickets/new?desc=${encodeURIComponent(description)}&diagnostic=${encodeURIComponent(diagnostic)}`}
                     className="flex items-center justify-center gap-2 w-full rounded-xl bg-white text-slate-900 py-3 font-bold hover:bg-slate-200 transition-all"
                  >
                     Criar Chamado Baseado nesta Análise <ArrowRight size={18} />

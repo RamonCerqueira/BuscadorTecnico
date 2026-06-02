@@ -45,23 +45,34 @@ export default function RegisterPage() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [newTag, setNewTag] = useState('');
   const [certificates, setCertificates] = useState<string[]>([]);
+  const [document, setDocument] = useState('');
+  const [address, setAddress] = useState('');
+  const [city, setCity] = useState('');
+  const [stateStr, setStateStr] = useState('');
+  const [zipCode, setZipCode] = useState('');
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   const totalSteps = userType === 'client' ? 2 : 3;
 
   const isStrongPassword = (p: string) => p.length >= 8 && /[A-Z]/.test(p) && (/[0-9]/.test(p) || /[\W_]/.test(p));
 
   const registerMutation = useMutation({
-    mutationFn: () => {
+    mutationFn: (cleanEmail: string) => {
       const payload = { 
         name, 
-        email, 
+        email: cleanEmail, 
         password, 
         userType, 
         acceptTerms,
         bio: userType === 'client' ? undefined : bio, 
         specialties: userType === 'client' ? undefined : specialties, 
-        certificates: userType === 'client' ? undefined : certificates 
+        certificates: userType === 'client' ? undefined : certificates,
+        document: userType === 'client' ? undefined : document,
+        address: userType === 'client' ? undefined : address,
+        city: userType === 'client' ? undefined : city,
+        state: userType === 'client' ? undefined : stateStr,
+        zipCode: userType === 'client' ? undefined : zipCode
       };
       return apiPost<AuthResponse>('/auth/register', payload);
     },
@@ -82,6 +93,25 @@ export default function RegisterPage() {
       }
     },
   });
+
+  const handleNextStep1 = () => {
+    const cleanEmail = email.trim().toLowerCase();
+    setEmail(cleanEmail);
+
+    if (!cleanEmail.includes('@')) {
+      setEmailError('O e-mail deve conter o caractere "@".');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setEmailError('Por favor, insira um e-mail em formato válido (ex: nome@dominio.com).');
+      return;
+    }
+
+    setEmailError(null);
+    nextStep();
+  };
 
   const addTag = () => {
     if (newTag && !specialties.includes(newTag)) {
@@ -119,11 +149,79 @@ export default function RegisterPage() {
           </p>
         </div>
 
-        <div className="relative z-10 glass-card p-6 mt-12 bg-white/5 border-white/10">
-          <div className="flex items-center gap-4 mb-4">
+        {/* Widget Imersivo: Preview do Dashboard do Técnico */}
+        <div className="relative z-10 my-6 w-full max-w-md">
+          <div className="relative group w-full">
+            {/* Efeito Glow atrás do widget */}
+            <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2rem] blur opacity-25 group-hover:opacity-35 transition duration-1000"></div>
+            
+            {/* Widget Principal */}
+            <div className="relative bg-slate-50 dark:bg-white/[0.03] backdrop-blur-2xl border border-slate-200 dark:border-white/10 rounded-[2rem] p-6 shadow-2xl space-y-6">
+              
+              {/* Header do Widget */}
+              <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/5 pb-4">
+                <div className="flex items-center gap-3">
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                  </span>
+                  <span className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-slate-300">Central de Inteligência</span>
+                </div>
+                <span className="text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2.5 py-1 rounded-full">
+                  TechFix AI v2.6
+                </span>
+              </div>
+
+              {/* Corpo - Chamado Atual */}
+              <div className="space-y-4">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 className="text-sm font-black text-slate-900 dark:text-white">Instalação Multi-Split</h3>
+                    <p className="text-[10px] font-bold text-slate-400 mt-1">Cliente: Ana Clara S. • Rio de Janeiro</p>
+                  </div>
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full shrink-0">
+                    Aprovado
+                  </span>
+                </div>
+
+                {/* Caixa de Diagnóstico IA */}
+                <div className="bg-blue-500/[0.04] dark:bg-blue-500/10 border border-blue-200/60 dark:border-blue-500/20 rounded-2xl p-4 space-y-2">
+                  <div className="flex items-center gap-2 text-xs font-bold text-blue-600 dark:text-blue-400">
+                    <span className="text-[8px] bg-blue-600 dark:bg-blue-500 text-white rounded-full px-1.5 py-0.5 font-black">AI</span>
+                    Diagnóstico Técnico
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-medium">
+                    "Identificada compatibilidade estrutural. Carga de gás (R410A) e fiação de 6mm recomendadas. Análise de segurança de rede elétrica aprovada."
+                  </p>
+                </div>
+
+                {/* Garantia Escrow */}
+                <div className="flex items-center justify-between bg-white/[0.02] dark:bg-white/[0.01] border border-slate-200 dark:border-white/5 rounded-2xl p-4">
+                  <div className="flex items-center gap-2.5">
+                    <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                      <ShieldCheck size={18} />
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-bold text-slate-400">Garantia Retida (Escrow)</p>
+                      <p className="text-xs font-black text-slate-900 dark:text-white">R$ 1.850,00</p>
+                    </div>
+                  </div>
+                  <span className="text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded-full">
+                    Seguro
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 glass-card p-6 w-full max-w-md bg-slate-50/50 dark:bg-white/5 border-slate-200 dark:border-white/10 rounded-3xl">
+          <div className="flex items-center gap-4">
             <div className="flex -space-x-4">
-              {[1,2,3].map(i => (
-                <div key={i} className={`h-10 w-10 rounded-full border-2 border-slate-100 dark:border-[#0a0a0a] bg-slate-200 dark:bg-slate-800 flex items-center justify-center`} />
+              {[1, 2, 3].map(i => (
+                <div key={i} className="h-10 w-10 rounded-full border-2 border-white dark:border-[#0a0a0a] bg-slate-200 dark:bg-slate-800 flex items-center justify-center text-xs font-bold text-slate-500">
+                  {i === 1 ? '👨‍🔧' : i === 2 ? '👩‍💻' : '👨‍💼'}
+                </div>
               ))}
             </div>
             <p className="text-sm font-medium text-slate-600 dark:text-slate-300">Mais de <span className="font-bold text-slate-900 dark:text-white">15.000 profissionais</span> aprovam.</p>
@@ -218,6 +316,7 @@ export default function RegisterPage() {
                   <div className="space-y-1.5">
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">E-mail Profissional</label>
                     <input className="input-field" placeholder="contato@exemplo.com" value={email} onChange={e => setEmail(e.target.value)} />
+                    {emailError && <p className="text-[10px] ml-1 mt-1 font-bold text-rose-500">{emailError}</p>}
                   </div>
                   <div className="grid gap-4 grid-cols-2">
                     <div className="space-y-1.5">
@@ -247,7 +346,7 @@ export default function RegisterPage() {
                 </div>
 
                 <button 
-                  onClick={nextStep}
+                  onClick={handleNextStep1}
                   disabled={!name || !email || !isStrongPassword(password) || password !== confirmPassword}
                   className="btn-primary w-full py-4 mt-2 text-sm font-bold flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20 disabled:opacity-50 disabled:shadow-none"
                 >
@@ -316,7 +415,7 @@ export default function RegisterPage() {
                   <ArrowLeft size={16} /> Voltar
                 </button>
                 <button 
-                  onClick={() => registerMutation.mutate()}
+                  onClick={() => registerMutation.mutate(email.trim().toLowerCase())}
                   disabled={registerMutation.isPending || !acceptTerms}
                   className="btn-primary flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
@@ -340,6 +439,64 @@ export default function RegisterPage() {
               </div>
 
               <div className="space-y-5">
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">
+                    {userType === 'company' ? 'CNPJ' : 'CPF'}
+                  </label>
+                  <input 
+                    className="input-field" 
+                    placeholder={userType === 'company' ? '00.000.000/0000-00' : '000.000.000-00'} 
+                    value={document}
+                    onChange={(e) => {
+                      let clean = e.target.value.replace(/\D/g, '');
+                      if (userType === 'technician') {
+                        clean = clean.substring(0, 11);
+                        clean = clean.replace(/(\d{3})(\d)/, '$1.$2');
+                        clean = clean.replace(/(\d{3})(\d)/, '$1.$2');
+                        clean = clean.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                      } else {
+                        clean = clean.substring(0, 14);
+                        clean = clean.replace(/(\d{2})(\d)/, '$1.$2');
+                        clean = clean.replace(/(\d{3})(\d)/, '$1.$2');
+                        clean = clean.replace(/(\d{3})(\d)/, '$1/$2');
+                        clean = clean.replace(/(\d{4})(\d{1,2})$/, '$1-$2');
+                      }
+                      setDocument(clean);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">CEP</label>
+                  <input 
+                    className="input-field" 
+                    placeholder="00000-000" 
+                    value={zipCode}
+                    onChange={(e) => {
+                      let clean = e.target.value.replace(/\D/g, '');
+                      clean = clean.substring(0, 8);
+                      clean = clean.replace(/(\d{5})(\d)/, '$1-$2');
+                      setZipCode(clean);
+                    }}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Endereço (Rua, Número)</label>
+                  <input className="input-field" placeholder="Ex: Rua das Flores, 123" value={address} onChange={e => setAddress(e.target.value)} />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Cidade</label>
+                    <input className="input-field" placeholder="Ex: São Paulo" value={city} onChange={e => setCity(e.target.value)} />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Estado</label>
+                    <input className="input-field" placeholder="Ex: SP" value={stateStr} onChange={e => setStateStr(e.target.value)} />
+                  </div>
+                </div>
+
                 <div className="space-y-1.5">
                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-500 dark:text-slate-400 ml-1">Sua Biografia & Diferenciais</label>
                   <textarea 
@@ -382,7 +539,7 @@ export default function RegisterPage() {
                 </button>
                 <button 
                   onClick={nextStep}
-                  disabled={!bio || specialties.length === 0}
+                  disabled={!bio || specialties.length === 0 || !document || !address || !city || !stateStr || !zipCode}
                   className="btn-primary flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   Próximo Passo <ArrowRight size={16} />
@@ -459,7 +616,7 @@ export default function RegisterPage() {
                   <ArrowLeft size={16} /> Voltar
                 </button>
                 <button 
-                  onClick={() => registerMutation.mutate()}
+                  onClick={() => registerMutation.mutate(email.trim().toLowerCase())}
                   disabled={registerMutation.isPending || !acceptTerms}
                   className="btn-primary flex-1 py-4 text-sm font-bold flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                 >

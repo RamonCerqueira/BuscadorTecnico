@@ -6,6 +6,7 @@ import { apiGet, apiPost, apiPatch } from '@/lib/api/client';
 import { useSessionStore } from '@/lib/store';
 import { useState } from 'react';
 import { FileUpload } from '@/components/ui/file-upload';
+import { initSocket, getSocket, disconnectSocket } from '@/lib/socket';
 import { 
   MapPin, 
   Clock, 
@@ -21,10 +22,14 @@ import {
   Plus,
   X,
   Eye,
-  FileText
+  FileText,
+  MessageCircle,
+  Send,
+  Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useRef } from 'react';
 
 export default function TicketDetailPage() {
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
@@ -42,9 +47,16 @@ export default function TicketDetailPage() {
   const [refundReceipt, setRefundReceipt] = useState('');
   const [showRefundForm, setShowRefundForm] = useState(false);
 
+  // Chat States
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatAttachment, setChatAttachment] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
   const params = useParams();
   const router = useRouter();
-  const { userType } = useSessionStore();
+  const { userType, token } = useSessionStore();
   const id = params.ticketId as string;
 
   const ticketQuery = useQuery({
@@ -60,6 +72,22 @@ export default function TicketDetailPage() {
       setProposalDate('');
       setProposalMessage('');
       alert('Proposta enviada com sucesso!');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao enviar proposta. Tente novamente.');
+    }
+  });
+
+  const [updateAmountInput, setUpdateAmountInput] = useState('');
+  const updateAmountMutation = useMutation({
+    mutationFn: (data: { proposalId: string, amount: number }) => apiPatch(`/tickets/${id}/proposals/${data.proposalId}/update-amount`, { amount: data.amount }),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      setUpdateAmountInput('');
+      alert('Valor da proposta atualizado!');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao atualizar o valor.');
     }
   });
 
@@ -124,6 +152,16 @@ export default function TicketDetailPage() {
 
   const ticket = ticketQuery.data;
 
+  let userId = '';
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]));
+      userId = payload.sub;
+    } catch {}
+  }
+
+  const myProposal = ticket?.proposals?.find((p: any) => p.provider?.id === userId);
+
   const priceSuggestionQuery = useQuery({
     queryKey: ['price-suggestion', ticket?.category, ticket?.description, ticket?.locationText],
     queryFn: () => {
@@ -136,6 +174,68 @@ export default function TicketDetailPage() {
     enabled: !!ticket && (userType === 'technician' || userType === 'company')
   });
 
+  const chatQuery = useQuery({
+    queryKey: ['chat', id],
+    queryFn: () => apiGet<any[]>(`/tickets/${id}/messages`),
+    enabled: isChatOpen
+  });
+
+  useEffect(() => {
+    if (chatQuery.data) {
+      setChatMessages(chatQuery.data);
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    }
+  }, [chatQuery.data]);
+
+  useEffect(() => {
+    if (isChatOpen) {
+      const rawSession = window.localStorage.getItem('buscador-session');
+      let token = '';
+      if (rawSession) {
+        try {
+          const parsed = JSON.parse(rawSession);
+          token = parsed.state?.token || '';
+        } catch (e) {}
+      }
+
+      if (token) {
+        const socket = initSocket(token);
+        socket.emit('joinTicket', id);
+
+        const handleNewMessage = (msg: any) => {
+          setChatMessages((prev) => [...prev, msg]);
+          setTimeout(() => {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+          }, 100);
+        };
+
+        socket.on('newMessage', handleNewMessage);
+
+        return () => {
+          socket.off('newMessage', handleNewMessage);
+          socket.emit('leaveTicket', id);
+          disconnectSocket();
+        };
+      }
+    }
+  }, [isChatOpen, id]);
+
+  const sendMessageMutation = useMutation({
+    mutationFn: () => apiPost(`/tickets/${id}/messages`, { content: chatInput, mediaUrls: chatAttachment ? [chatAttachment] : [] }),
+    onSuccess: () => {
+      setChatInput('');
+      setChatAttachment('');
+    }
+  });
+
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() && !chatAttachment) return;
+    sendMessageMutation.mutate();
+  };
+
   if (ticketQuery.isLoading) return (
     <div className="flex min-h-screen items-center justify-center bg-white">
       <div className="h-10 w-10 animate-spin rounded-full border-4 border-blue-600 border-t-transparent"></div>
@@ -145,10 +245,10 @@ export default function TicketDetailPage() {
   if (!ticket) return <div className="p-20 text-center">Chamado não encontrado.</div>;
 
   return (
-    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-6 bg-[#f8fafc] text-slate-900">
+    <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-6 bg-[#f8fafc] dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-200">
       {/* Banner de Garantias Exclusivas On-Platform */}
       {ticket && (ticket.status === 'open' || ticket.status === 'in_progress') && (
-        <div className="mb-8 rounded-3xl bg-amber-50 border border-amber-200 p-6 flex items-start gap-4 shadow-sm">
+        <div className="mb-8 rounded-3xl bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20 p-6 flex items-start gap-4 shadow-sm">
           <div className="h-10 w-10 rounded-2xl bg-amber-500 text-white flex items-center justify-center shrink-0 shadow-lg shadow-amber-500/20">
             <ShieldCheck size={20} />
           </div>
@@ -161,29 +261,29 @@ export default function TicketDetailPage() {
         </div>
       )}
 
-      <Link href="/marketplace" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mb-8 group">
+      <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mb-8 group">
         <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" /> Voltar ao Marketplace
       </Link>
 
       <div className="grid gap-10 lg:grid-cols-3">
         {/* Detalhes do Chamado (Esquerda) */}
         <section className="lg:col-span-2 space-y-8">
-          <div className="glass-card bg-white p-10">
+          <div className="glass-card bg-white dark:bg-white/5 p-10 border-none dark:border-white/10 shadow-2xl dark:shadow-none">
             <div className="flex flex-wrap items-center gap-3 mb-6">
               <span className={`rounded-full px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 ${ticket.paymentStatus === 'escrow' ? 'bg-blue-50 text-blue-600 outline-blue-100' : 'bg-emerald-50 text-emerald-600 outline-emerald-100'}`}>
                 <div className={`h-2 w-2 rounded-full animate-pulse ${ticket.paymentStatus === 'escrow' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
                 {ticket.paymentStatus === 'escrow' ? 'Pagamento Protegido em Escrow' : 'Aberto para Orçamentos'}
               </span>
-              <span className="rounded-full bg-slate-100 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500">
+              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 Postado {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
               </span>
             </div>
 
-            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 leading-tight">
+            <h1 className="text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white leading-tight">
               {ticket.title}
             </h1>
             
-            <div className="mt-8 flex flex-wrap items-center gap-8 border-y border-slate-100 py-6">
+            <div className="mt-8 flex flex-wrap items-center gap-8 border-y border-slate-100 dark:border-white/10 py-6">
                <div className="flex items-center gap-3">
                   <div className="h-10 w-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
                     <MapPin size={20} />
@@ -206,7 +306,7 @@ export default function TicketDetailPage() {
 
             <div className="mt-10">
               <h3 className="text-lg font-bold mb-4">Descrição do Problema</h3>
-              <p className="text-lg text-slate-600 leading-relaxed whitespace-pre-wrap">
+              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
                 {ticket.description}
               </p>
             </div>
@@ -258,7 +358,7 @@ export default function TicketDetailPage() {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card bg-white p-10 space-y-6"
+              className="glass-card bg-white dark:bg-white/5 p-10 space-y-6 border-none dark:border-white/10 shadow-2xl dark:shadow-none"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -266,7 +366,7 @@ export default function TicketDetailPage() {
                     <DollarSign size={20} />
                   </div>
                   <div>
-                    <h2 className="text-xl font-bold tracking-tight text-slate-900">Reembolso de Materiais & Peças</h2>
+                    <h2 className="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Reembolso de Materiais & Peças</h2>
                     <p className="text-xs text-slate-500 font-semibold mt-0.5">Gerenciamento de despesas adicionais com peças e insumos</p>
                   </div>
                 </div>
@@ -359,7 +459,7 @@ export default function TicketDetailPage() {
               {/* Lista de Reembolsos */}
               <div className="space-y-4 mt-4">
                 {refundsQuery.data?.map((refund) => (
-                  <div key={refund.id} className="border border-slate-100 rounded-2xl p-5 bg-white flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-slate-200 transition-colors">
+                  <div key={refund.id} className="border border-slate-100 dark:border-white/10 rounded-2xl p-5 bg-white dark:bg-white/5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 hover:border-slate-200 dark:hover:border-white/20 transition-colors">
                     <div className="flex items-start gap-4">
                       {refund.receiptUrl && (
                         <a href={refund.receiptUrl} target="_blank" rel="noopener noreferrer" className="relative h-16 w-16 rounded-xl overflow-hidden border border-slate-100 block shrink-0 group">
@@ -430,89 +530,148 @@ export default function TicketDetailPage() {
         {/* Orçamento e Ações (Direita) */}
         <aside className="space-y-6">
           {userType === 'technician' || userType === 'company' ? (
-            <div className="glass-card bg-white p-8 sticky top-24 shadow-2xl border-blue-100/50">
-              <h2 className="text-xl font-bold mb-6">Enviar Orçamento</h2>
-              
-              <div className="space-y-6">
-                  <div className="space-y-2">
-                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor Estimado (R$)</label>
-                     <div className="relative">
-                       <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                       <input 
-                         className="input-field pl-12 h-14 text-xl font-bold" 
-                         placeholder="0,00" 
-                         value={proposalAmount}
-                         onChange={(e) => setProposalAmount(e.target.value)}
-                       />
-                     </div>
+            myProposal ? (
+              <div className="glass-card bg-white dark:bg-white/5 p-8 sticky top-24 shadow-2xl dark:shadow-none border-blue-100/50 dark:border-white/10">
+                <h2 className="text-xl font-bold mb-6">Sua Proposta Oficial</h2>
+                
+                <div className="space-y-6">
+                  <div className="flex justify-between items-center bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10">
+                    <span className="text-xs font-black uppercase tracking-widest text-slate-400">Status Atual</span>
+                    <span className={`px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm ${
+                        myProposal.status === 'pending' ? 'bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-400 border border-amber-200 dark:border-amber-500/30' :
+                        myProposal.status === 'accepted' ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-500/20 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/30' :
+                        'bg-rose-100 text-rose-600 dark:bg-rose-500/20 dark:text-rose-400 border border-rose-200 dark:border-rose-500/30'
+                    }`}>
+                      {myProposal.status === 'pending' ? 'Aguardando Cliente' :
+                       myProposal.status === 'accepted' ? 'Proposta Aceita!' : 'Proposta Recusada'}
+                    </span>
                   </div>
 
-                  {/* Widget de Precificação Inteligente por IA */}
-                  {priceSuggestionQuery.data && (
-                    <div className="rounded-2xl bg-blue-50/70 p-4 border border-blue-100/50 space-y-1">
-                      <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600">
-                        <Sparkles size={14} className="animate-pulse" /> Sugestão Inteligente IA
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Valor Ofertado</span>
+                    <div className="text-3xl font-black text-blue-600 dark:text-blue-400 tracking-tight">R$ {Number(myProposal.estimatedValue).toFixed(2)}</div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Sua Mensagem</span>
+                    <p className="text-sm font-medium text-slate-600 dark:text-slate-300 italic bg-slate-50 dark:bg-white/5 p-5 rounded-2xl border border-slate-100 dark:border-white/10 leading-relaxed">
+                      "{myProposal.message}"
+                    </p>
+                  </div>
+
+                  {myProposal.status === 'pending' && (
+                    <div className="pt-6 border-t border-slate-100 dark:border-white/10 space-y-3 mt-4">
+                      <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Atualizar Valor (Negociação)</label>
+                      <div className="flex gap-2">
+                        <div className="relative flex-1">
+                          <DollarSign size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                          <input 
+                            className="input-field !pl-10 h-12 text-sm font-bold w-full"
+                            placeholder="Novo valor"
+                            value={updateAmountInput}
+                            onChange={(e) => setUpdateAmountInput(e.target.value)}
+                          />
+                        </div>
+                        <button 
+                          onClick={() => updateAmountMutation.mutate({ proposalId: myProposal.id, amount: Number(updateAmountInput) })}
+                          disabled={updateAmountMutation.isPending || !updateAmountInput}
+                          className="btn-primary px-6 rounded-xl text-xs font-bold uppercase tracking-widest shadow-lg shadow-blue-500/20"
+                        >
+                          {updateAmountMutation.isPending ? '...' : 'Atualizar'}
+                        </button>
                       </div>
-                      <p className="text-xs font-bold text-slate-700">
-                        Faixa sugerida: <span className="text-blue-600">R$ {priceSuggestionQuery.data.minPrice} - R$ {priceSuggestionQuery.data.maxPrice}</span>
-                      </p>
-                      <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">
-                        {priceSuggestionQuery.data.reason}
+                      <p className="text-[10px] text-slate-400 font-medium text-center">
+                        O cliente será notificado caso você altere o valor do orçamento.
                       </p>
                     </div>
                   )}
-
-                  <div className="space-y-2">
-                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Previsão de Visita</label>
-                     <div className="relative">
-                       <Calendar size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-                       <input 
-                         className="input-field pl-12 h-14" 
-                         type="date" 
-                         value={proposalDate}
-                         onChange={(e) => setProposalDate(e.target.value)}
-                       />
-                     </div>
-                  </div>
-
-                  <div className="space-y-2">
-                     <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Mensagem para o Cliente</label>
-                     <textarea 
-                       className="input-field min-h-[120px] resize-none py-4" 
-                       placeholder="Explique seu diferencial e como pretende resolver o problema..." 
-                       value={proposalMessage}
-                       onChange={(e) => setProposalMessage(e.target.value)}
-                     />
-                  </div>
-
-                  <button 
-                    onClick={() => createProposalMutation.mutate({
-                      estimatedValue: Number(proposalAmount),
-                      message: proposalMessage,
-                      // scheduledAt: proposalDate // API might need to support this
-                    })}
-                    disabled={createProposalMutation.isPending}
-                    className="btn-primary w-full py-5 text-lg shadow-blue-500/20"
-                  >
-                    {createProposalMutation.isPending ? 'Enviando...' : 'Enviar Proposta Oficial'}
-                  </button>
-
-                 <div className="flex items-center gap-3 rounded-2xl bg-amber-50 p-4 text-xs text-amber-700 outline outline-1 outline-amber-100">
-                    <ShieldCheck size={20} className="shrink-0" />
-                    <p className="font-medium leading-relaxed">
-                      Sua proposta é protegida pela **Garantia TechFix**. O pagamento só é liberado após a conclusão do serviço.
-                    </p>
-                 </div>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="glass-card bg-white dark:bg-white/5 p-8 sticky top-24 shadow-2xl dark:shadow-none border-blue-100/50 dark:border-white/10">
+                <h2 className="text-xl font-bold mb-6">Enviar Orçamento</h2>
+                
+                <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor Estimado (R$)</label>
+                       <div className="relative">
+                         <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                         <input 
+                           className="input-field !pl-12 h-14 text-xl font-bold" 
+                           placeholder="0,00" 
+                           value={proposalAmount}
+                           onChange={(e) => setProposalAmount(e.target.value)}
+                         />
+                       </div>
+                    </div>
+
+                    {/* Widget de Precificação Inteligente por IA */}
+                    {priceSuggestionQuery.data && (
+                      <div className="rounded-2xl bg-blue-50/70 dark:bg-blue-900/10 p-4 border border-blue-100/50 dark:border-blue-800/30 space-y-1">
+                        <div className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-blue-600">
+                          <Sparkles size={14} className="animate-pulse" /> Sugestão Inteligente IA
+                        </div>
+                        <p className="text-xs font-bold text-slate-700 dark:text-slate-300">
+                          Faixa sugerida: <span className="text-blue-600 dark:text-blue-400">R$ {priceSuggestionQuery.data.minPrice} - R$ {priceSuggestionQuery.data.maxPrice}</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-medium leading-relaxed mt-1">
+                          {priceSuggestionQuery.data.reason}
+                        </p>
+                      </div>
+                    )}
+
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Previsão de Visita</label>
+                       <div className="relative">
+                         <Calendar size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                         <input 
+                           className="input-field !pl-12 h-14" 
+                           type="date" 
+                           value={proposalDate}
+                           onChange={(e) => setProposalDate(e.target.value)}
+                         />
+                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Mensagem para o Cliente</label>
+                       <textarea 
+                         className="input-field min-h-[120px] resize-none py-4" 
+                         placeholder="Explique seu diferencial e como pretende resolver o problema..." 
+                         value={proposalMessage}
+                         onChange={(e) => setProposalMessage(e.target.value)}
+                       />
+                    </div>
+
+                    <button 
+                      onClick={() => createProposalMutation.mutate({
+                        estimatedValue: Number(proposalAmount),
+                        message: proposalMessage,
+                        // scheduledAt: proposalDate // API might need to support this
+                      })}
+                      disabled={createProposalMutation.isPending}
+                      className="btn-primary w-full py-5 text-lg shadow-blue-500/20"
+                    >
+                      {createProposalMutation.isPending ? 'Enviando...' : 'Enviar Proposta Oficial'}
+                    </button>
+
+                   <div className="flex items-center gap-3 rounded-2xl bg-amber-50 dark:bg-amber-500/10 p-4 text-xs text-amber-700 dark:text-amber-500 outline outline-1 outline-amber-100 dark:outline-amber-500/20">
+                      <ShieldCheck size={20} className="shrink-0" />
+                      <p className="font-medium leading-relaxed">
+                        Sua proposta é protegida pela **Garantia TechFix**. O pagamento só é liberado após a conclusão do serviço.
+                      </p>
+                   </div>
+                </div>
+              </div>
+            )
           ) : (
-            <div className="glass-card bg-white p-8 sticky top-24 shadow-2xl border-blue-100/50">
+            <div className="glass-card bg-white dark:bg-white/5 p-8 sticky top-24 shadow-2xl dark:shadow-none border-blue-100/50 dark:border-white/10">
               <h2 className="text-xl font-bold mb-6">Propostas Recebidas</h2>
               
               <div className="space-y-4">
                 {ticket.proposals?.length === 0 && (
                    <div className="py-12 text-center space-y-3">
-                      <div className="mx-auto h-12 w-12 rounded-full bg-slate-50 flex items-center justify-center text-slate-300">
+                      <div className="mx-auto h-12 w-12 rounded-full bg-slate-50 dark:bg-white/5 flex items-center justify-center text-slate-300 dark:text-slate-600">
                          <Clock size={24} />
                       </div>
                       <p className="text-sm font-medium text-slate-400">Aguardando orçamentos...</p>
@@ -520,12 +679,12 @@ export default function TicketDetailPage() {
                 )}
                 
                 {ticket.proposals?.map((proposal: any) => (
-                  <div key={proposal.id} className="rounded-2xl border border-slate-100 p-5 space-y-4 hover:border-blue-200 transition-colors">
+                  <div key={proposal.id} className="rounded-2xl border border-slate-100 dark:border-white/10 p-5 space-y-4 hover:border-blue-200 dark:hover:border-blue-500/30 transition-colors bg-white/50 dark:bg-transparent">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="h-10 w-10 rounded-full bg-slate-200" />
+                        <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-700 shrink-0" />
                         <div>
-                          <p className="font-bold text-sm">{proposal.provider.name}</p>
+                          <p className="font-bold text-sm text-slate-900 dark:text-white">{proposal.provider.name}</p>
                           <div className="flex items-center gap-1 text-[10px] text-amber-500 font-bold">
                             <Star size={10} className="fill-current" /> 4.9 (124)
                           </div>
@@ -606,6 +765,16 @@ export default function TicketDetailPage() {
                             </div>
                           )}
                           
+                          {/* Botão de Chat (Apenas após aceite) */}
+                          <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
+                            <button
+                              onClick={() => setIsChatOpen(true)}
+                              className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2"
+                            >
+                              <MessageCircle size={18} /> Chat com o Técnico
+                            </button>
+                          </div>
+
                           {ticket.status === 'in_progress' && (
                              <button 
                                onClick={() => setIsReviewModalOpen(true)}
@@ -637,7 +806,7 @@ export default function TicketDetailPage() {
 
           {/* Laudo Técnico por IA Widget */}
           {(ticket.status === 'resolved' || ticket.status === 'closed') && (
-            <div className="glass-card bg-white p-8 shadow-2xl border-blue-100/50 space-y-4">
+            <div className="glass-card bg-white dark:bg-white/5 p-8 shadow-2xl dark:shadow-none border-blue-100/50 dark:border-white/10 space-y-4">
               <div className="flex items-center gap-2.5">
                 <div className="h-8 w-8 rounded-xl bg-blue-600/10 flex items-center justify-center text-blue-600">
                   <FileText size={16} />
@@ -733,6 +902,146 @@ export default function TicketDetailPage() {
               </div>
             </motion.div>
           </div>
+        )}
+      </AnimatePresence>
+
+      {/* Slide-over Chat Modal estilo WhatsApp */}
+      <AnimatePresence>
+        {isChatOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsChatOpen(false)}
+              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ x: '100%', opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: '100%', opacity: 0 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+              className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-md bg-[#efeae2] dark:bg-[#0b141a] shadow-2xl flex flex-col border-l border-white/10"
+            >
+              {/* Header do Chat */}
+              <div className="flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-3 border-b border-black/5 dark:border-white/5 shadow-sm relative z-10">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-slate-300 overflow-hidden shrink-0">
+                    {ticket.assignedTo?.avatarUrl ? (
+                      <img src={ticket.assignedTo.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="h-full w-full flex items-center justify-center bg-blue-600 text-white font-bold text-lg">
+                        {ticket.assignedTo?.name?.[0] || 'T'}
+                      </div>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold text-[#111b21] dark:text-[#e9edef]">{ticket.assignedTo?.name || 'Técnico Responsável'}</h3>
+                    <p className="text-[11px] text-[#667781] dark:text-[#8696a0]">Online</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setIsChatOpen(false)}
+                  className="p-2 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Área de Mensagens (Estilo WhatsApp) */}
+              <div 
+                className="flex-1 overflow-y-auto p-4 space-y-4 relative"
+                style={{
+                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
+                  backgroundSize: 'contain',
+                  backgroundRepeat: 'repeat',
+                  opacity: 0.8
+                }}
+              >
+                {chatQuery.isLoading ? (
+                  <div className="flex justify-center p-4"><div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+                ) : (
+                  chatMessages.map((msg: any) => {
+                    const isMe = msg.sender.userType === userType; // Simplificação, na prática usaríamos user.sub
+                    return (
+                      <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
+                        <div className={`max-w-[85%] rounded-2xl px-3 pt-2 pb-3 shadow-sm relative ${
+                          isMe 
+                            ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-none' 
+                            : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-none'
+                        }`}>
+                          {!isMe && (
+                            <p className="text-[11px] font-bold text-[#027eb5] dark:text-[#53bdeb] mb-0.5">{msg.sender.name}</p>
+                          )}
+                          
+                          {msg.mediaUrls && msg.mediaUrls.length > 0 && (
+                            <div className="mb-2 rounded-xl overflow-hidden mt-1">
+                              <img src={msg.mediaUrls[0]} alt="Anexo" className="max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.mediaUrls[0], '_blank')} />
+                            </div>
+                          )}
+                          
+                          <p className="text-[13.5px] leading-[19px] whitespace-pre-wrap mr-10">{msg.content}</p>
+                          
+                          <div className="absolute right-2 bottom-1.5 flex items-center gap-1">
+                            <span className="text-[10px] text-[#667781] dark:text-[#8696a0]/80">
+                              {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </span>
+                            {isMe && <CheckCircle2 size={12} className="text-[#53bdeb]" />}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+                <div ref={messagesEndRef} />
+              </div>
+
+              {/* Input Area */}
+              <div className="bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-3 flex items-end gap-2 relative z-10">
+                {chatAttachment ? (
+                  <div className="absolute -top-16 left-4 bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2">
+                    <img src={chatAttachment} alt="Preview" className="h-10 w-10 object-cover rounded-lg" />
+                    <button onClick={() => setChatAttachment('')} className="p-1 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20"><X size={14}/></button>
+                  </div>
+                ) : null}
+
+                <div className="shrink-0 pb-1.5">
+                  <FileUpload
+                    variant="icon"
+                    onUpload={(urls) => setChatAttachment(urls[0])}
+                    maxFiles={1}
+                    label=""
+                    className="p-2 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 rounded-full cursor-pointer transition-colors"
+                  >
+                    <ImageIcon size={22} />
+                  </FileUpload>
+                </div>
+                
+                <form onSubmit={handleSendMessage} className="flex-1 flex gap-2">
+                  <textarea
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        handleSendMessage(e);
+                      }
+                    }}
+                    placeholder="Digite uma mensagem"
+                    className="w-full bg-white dark:bg-[#2a3942] text-[#111b21] dark:text-[#e9edef] rounded-2xl px-4 py-3 text-sm focus:outline-none resize-none min-h-[44px] max-h-[120px]"
+                    rows={1}
+                  />
+                  <button
+                    type="submit"
+                    disabled={(!chatInput.trim() && !chatAttachment) || sendMessageMutation.isPending}
+                    className="shrink-0 h-11 w-11 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shadow-sm disabled:opacity-50 transition-colors"
+                  >
+                    {sendMessageMutation.isPending ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={18} className="ml-1" />}
+                  </button>
+                </form>
+              </div>
+            </motion.div>
+          </>
         )}
       </AnimatePresence>
     </main>

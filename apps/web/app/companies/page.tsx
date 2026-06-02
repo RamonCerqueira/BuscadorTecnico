@@ -1,11 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api/client';
 import { SkeletonCard } from '@/components/ui/skeleton';
+import { useSessionStore } from '@/lib/store';
 import Link from 'next/link';
+import { CategoryScroll } from '@/components/ui/category-scroll';
 import { 
   Search, 
   Star, 
@@ -32,12 +34,23 @@ type Professional = {
   livenessVerified?: boolean;
 };
 
-const CATEGORIES = ['Ar Condicionado', 'Elétrica', 'Hidráulica', 'Limpeza', 'Reformas', 'Informática'];
-
 export default function CompaniesPage() {
+  const { token } = useSessionStore();
+  const isLoggedIn = !!token;
+  
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const catParam = params.get('category');
+      const searchParam = params.get('search');
+      if (catParam) setSelectedCategory(catParam);
+      if (searchParam) setSearch(searchParam);
+    }
+  }, []);
+
   // Geolocation and advanced filters states
   const [geoEnabled, setGeoEnabled] = useState(false);
   const [lat, setLat] = useState<number | null>(null);
@@ -73,13 +86,16 @@ export default function CompaniesPage() {
 
   const { data: professionals, isLoading } = useQuery({
     queryKey: ['professionals', selectedCategory, geoEnabled, lat, lng, radius],
-    queryFn: () => {
+    queryFn: async () => {
       if (geoEnabled && lat && lng) {
         return apiGet<Professional[]>(`/users/search?lat=${lat}&lng=${lng}&radius=${radius}`);
       }
-      return apiGet<Professional[]>(`/users/professionals${selectedCategory ? `?category=${selectedCategory}` : ''}`);
+      const res = await apiGet<{ data: Professional[] }>(`/users/professionals${selectedCategory ? `?category=${encodeURIComponent(selectedCategory)}` : ''}`);
+      return res?.data || [];
     }
   });
+
+  const dynamicCategories = Array.from(new Set(professionals?.flatMap(p => p.specialties || []) || [])).sort();
 
   const filteredProfessionals = professionals?.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
@@ -89,6 +105,10 @@ export default function CompaniesPage() {
 
     return matchesSearch && matchesVerified && matchesRating && matchesCategory;
   });
+
+  const displayedProfessionals = isLoggedIn 
+    ? filteredProfessionals 
+    : filteredProfessionals?.slice(0, 2);
 
   return (
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors duration-300">
@@ -132,26 +152,11 @@ export default function CompaniesPage() {
         {/* Sidebar Filters */}
         <aside className="space-y-10 lg:sticky lg:top-32 h-fit">
           <div>
-            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 mb-6 flex items-center gap-2">
-              <Filter size={14} /> Categorias
-            </h3>
-            <div className="flex flex-col gap-2">
-              <button 
-                onClick={() => setSelectedCategory(null)}
-                className={`text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${!selectedCategory ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500'}`}
-              >
-                Todas as Categorias
-              </button>
-              {CATEGORIES.map(cat => (
-                <button 
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`text-left px-4 py-3 rounded-xl text-sm font-bold transition-all ${selectedCategory === cat ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20' : 'hover:bg-slate-100 dark:hover:bg-white/5 text-slate-500'}`}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
+            <CategoryScroll 
+              categories={dynamicCategories}
+              selectedCategory={selectedCategory}
+              onSelect={setSelectedCategory}
+            />
           </div>
 
           {/* Filtros de Geolocalização e Avançados */}
@@ -235,8 +240,8 @@ export default function CompaniesPage() {
               {[1, 2, 3, 4].map(i => <SkeletonCard key={i} />)}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-               {filteredProfessionals?.map((p, i) => (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+               {displayedProfessionals?.map((p, i) => (
                  <motion.div
                    key={p.id}
                    initial={{ opacity: 0, scale: 0.95 }}
@@ -288,12 +293,44 @@ export default function CompaniesPage() {
                        <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500 flex items-center gap-1">
                          <CheckCircle2 size={14} /> Disponível
                        </span>
-                       <Link href={`/profile/${p.id}`} className="text-xs font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:gap-2 transition-all">
+                       <Link href={isLoggedIn ? `/profile/${p.id}` : `/register`} className="text-xs font-black uppercase tracking-widest text-blue-600 flex items-center gap-1 hover:gap-2 transition-all">
                          Ver Perfil <ArrowRight size={14} />
                        </Link>
                     </div>
                  </motion.div>
                ))}
+
+               {/* Locked State Banner overlay - client only if not logged in */}
+               {!isLoggedIn && filteredProfessionals && filteredProfessionals.length > 2 && (
+                 <div className="col-span-full mt-4 relative">
+                   {/* Glowing Light behind the lock block */}
+                   <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-[2.5rem] blur opacity-15 pointer-events-none z-0"></div>
+                   
+                   <div className="relative z-10 glass-card bg-white/90 dark:bg-[#0c0c14]/95 border border-slate-200 dark:border-white/10 rounded-[2.5rem] p-8 sm:p-12 text-center space-y-6 shadow-2xl backdrop-blur-2xl">
+                     <div className="mx-auto h-16 w-16 rounded-3xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-lg shadow-blue-500/5">
+                       <Search size={32} />
+                     </div>
+                     
+                     <div className="max-w-2xl mx-auto space-y-3">
+                       <h3 className="text-2xl sm:text-3xl font-black tracking-tight">
+                         Quer Encontrar a <span className="premium-gradient-text">Elite dos Especialistas</span>?
+                       </h3>
+                       <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed font-medium">
+                         Cadastre-se gratuitamente no TechFix para desbloquear a lista completa de mais de 15.000 profissionais certificados perto de você, contatar técnicos em tempo real por chat e gerar diagnósticos inteligentes de chamado utilizando IA.
+                       </p>
+                     </div>
+
+                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto pt-4">
+                       <Link href="/register" className="w-full sm:flex-1 btn-primary py-4 text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/20 active:scale-95 text-center">
+                         Começar Cadastro Grátis
+                       </Link>
+                       <Link href="/login" className="w-full sm:flex-1 py-4 text-xs font-black uppercase tracking-widest text-slate-700 dark:text-white border border-slate-200 dark:border-white/10 rounded-2xl hover:bg-slate-100 dark:hover:bg-white/5 transition-all text-center">
+                         Entrar na Conta
+                       </Link>
+                     </div>
+                   </div>
+                 </div>
+               )}
 
                {filteredProfessionals?.length === 0 && (
                  <div className="col-span-full py-20 text-center space-y-4">

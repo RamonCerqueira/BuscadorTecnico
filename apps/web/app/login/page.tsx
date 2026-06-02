@@ -20,9 +20,10 @@ export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [validationError, setValidationError] = useState<string | null>(null);
 
   const loginMutation = useMutation({
-    mutationFn: () => apiPost<AuthResponse>('/auth/login', { email, password }),
+    mutationFn: (cleanEmail: string) => apiPost<AuthResponse>('/auth/login', { email: cleanEmail, password }),
     onSuccess: (data) => {
       try {
         const payload = JSON.parse(atob(data.accessToken.split('.')[1])) as { userType: string };
@@ -39,6 +40,30 @@ export default function LoginPage() {
       }
     }
   });
+
+  const handleLogin = () => {
+    const cleanEmail = email.trim().toLowerCase();
+    setEmail(cleanEmail); // Normaliza visualmente no input
+
+    if (!cleanEmail) {
+      setValidationError('Por favor, preencha o e-mail.');
+      return;
+    }
+
+    if (!cleanEmail.includes('@')) {
+      setValidationError('O e-mail deve conter o caractere "@".');
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(cleanEmail)) {
+      setValidationError('Por favor, insira um e-mail em formato válido (ex: nome@dominio.com).');
+      return;
+    }
+
+    setValidationError(null);
+    loginMutation.mutate(cleanEmail);
+  };
 
   return (
     <main className="mx-auto flex min-h-[calc(100vh-80px)] w-full max-w-7xl items-center px-4 py-12 lg:py-20 sm:px-6 transition-colors duration-300">
@@ -129,11 +154,12 @@ export default function LoginPage() {
               </div>
               <button
                 className="btn-primary w-full py-5 text-lg shadow-blue-600/20 mt-4"
-                onClick={() => loginMutation.mutate()}
+                onClick={handleLogin}
                 disabled={loginMutation.isPending}
               >
                 {loginMutation.isPending ? 'Sincronizando...' : 'Entrar na Plataforma'}
               </button>
+              {validationError && <p className="text-center text-sm text-rose-500 font-bold">{validationError}</p>}
               {loginMutation.isError && <p className="text-center text-sm text-rose-500 font-bold">Credenciais inválidas. Verifique seus dados.</p>}
               
               <p className="mt-10 text-center text-sm font-bold text-slate-500">

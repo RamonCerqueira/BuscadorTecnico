@@ -1,6 +1,7 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, UnauthorizedException } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import { CurrentUser, AuthUser } from '../auth/current-user.decorator';
 
 @Controller('notifications')
 @UseGuards(JwtAuthGuard)
@@ -8,8 +9,10 @@ export class NotificationsController {
   constructor(private readonly notificationsService: NotificationsService) {}
 
   @Get()
-  findAll(@Request() req: any) {
-    return this.notificationsService.findAll(req.user.id);
+  findAll(@CurrentUser() user: AuthUser) {
+    const userId = user?.sub || (user as any)?.id;
+    if (!userId) throw new UnauthorizedException('User ID is missing from token payload');
+    return this.notificationsService.findAll(userId);
   }
 
   @Get('vapid-key')
@@ -18,17 +21,23 @@ export class NotificationsController {
   }
 
   @Post('subscribe')
-  subscribe(@Body() body: any, @Request() req: any) {
-    return this.notificationsService.subscribe(req.user.id, body);
+  subscribe(@Body() body: any, @CurrentUser() user: AuthUser) {
+    const userId = user?.sub || (user as any)?.id;
+    if (!userId) throw new UnauthorizedException('User ID is missing');
+    return this.notificationsService.subscribe(userId, body);
   }
 
   @Patch(':id/read')
-  markAsRead(@Param('id') id: string, @Request() req: any) {
-    return this.notificationsService.markAsRead(id, req.user.id);
+  markAsRead(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    const userId = user?.sub || (user as any)?.id;
+    if (!userId) throw new UnauthorizedException('User ID is missing');
+    return this.notificationsService.markAsRead(id, userId);
   }
 
   @Patch('read-all')
-  markAllAsRead(@Request() req: any) {
-    return this.notificationsService.markAllAsRead(req.user.id);
+  markAllAsRead(@CurrentUser() user: AuthUser) {
+    const userId = user?.sub || (user as any)?.id;
+    if (!userId) throw new UnauthorizedException('User ID is missing');
+    return this.notificationsService.markAllAsRead(userId);
   }
 }

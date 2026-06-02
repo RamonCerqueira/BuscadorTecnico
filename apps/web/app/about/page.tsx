@@ -123,7 +123,7 @@ export default function AboutPage() {
               <Link href="/register" className="bg-white text-blue-600 font-black px-12 py-5 rounded-2xl text-lg shadow-2xl hover:bg-slate-50 active:scale-95 transition-all">
                 Seja um Prestador
               </Link>
-              <Link href="/marketplace" className="bg-transparent border-2 border-white/30 text-white font-black px-12 py-5 rounded-2xl text-lg shadow-2xl hover:bg-white/10 active:scale-95 transition-all backdrop-blur-md">
+              <Link href="/opportunities" className="bg-transparent border-2 border-white/30 text-white font-black px-12 py-5 rounded-2xl text-lg shadow-2xl hover:bg-white/10 active:scale-95 transition-all backdrop-blur-md">
                 Encontrar um Técnico
               </Link>
             </div>

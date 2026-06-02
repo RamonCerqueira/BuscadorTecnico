@@ -1,4 +1,4 @@
-import { IsArray, IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MinLength } from 'class-validator';
+import { IsArray, IsBoolean, IsEmail, IsEnum, IsNotEmpty, IsOptional, IsString, Matches, MinLength, ValidateIf } from 'class-validator';
 import { UserType } from '@prisma/client';
 
 export class RegisterDto {
@@ -34,4 +34,29 @@ export class RegisterDto {
   @IsArray()
   @IsString({ each: true })
   certificates?: string[];
+
+  @ValidateIf((o) => o.userType === 'technician' || o.userType === 'company')
+  @IsNotEmpty({ message: 'Documento (CPF ou CNPJ) é obrigatório' })
+  @IsString()
+  document?: string;
+
+  @ValidateIf((o) => o.userType === 'technician' || o.userType === 'company')
+  @IsNotEmpty({ message: 'Endereço é obrigatório' })
+  @IsString()
+  address?: string;
+
+  @ValidateIf((o) => o.userType === 'technician' || o.userType === 'company')
+  @IsNotEmpty({ message: 'Cidade é obrigatória' })
+  @IsString()
+  city?: string;
+
+  @ValidateIf((o) => o.userType === 'technician' || o.userType === 'company')
+  @IsNotEmpty({ message: 'Estado é obrigatório' })
+  @IsString()
+  state?: string;
+
+  @ValidateIf((o) => o.userType === 'technician' || o.userType === 'company')
+  @IsNotEmpty({ message: 'CEP é obrigatório' })
+  @IsString()
+  zipCode?: string;
 }

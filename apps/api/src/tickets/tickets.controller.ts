@@ -21,6 +21,31 @@ export class TicketsController {
     return this.ticketsService.create({ ...body, clientId: user.sub });
   }
 
+  @Get('my-jobs')
+  @Roles('technician', 'company')
+  myJobs(
+    @Query('status') status?: TicketStatus,
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @CurrentUser() user?: AuthUser
+  ) {
+    const parsedLimit = limit ? Number(limit) : undefined;
+    if (!user) throw new Error('User is required');
+    return this.ticketsService.listByProvider(user.sub, status, cursor, parsedLimit);
+  }
+
+  @Get('my-proposals')
+  @Roles('technician', 'company')
+  myProposals(
+    @Query('cursor') cursor?: string,
+    @Query('limit') limit?: string,
+    @CurrentUser() user?: AuthUser
+  ) {
+    const parsedLimit = limit ? Number(limit) : undefined;
+    if (!user) throw new Error('User is required');
+    return this.ticketsService.listProposalsByProvider(user.sub, cursor, parsedLimit);
+  }
+
   @Get()
   @Roles('client', 'technician', 'company', 'admin')
   list(
@@ -34,6 +59,12 @@ export class TicketsController {
       return this.ticketsService.listByClient(user.sub, status, cursor, parsedLimit);
     }
     return this.ticketsService.list(status, cursor, parsedLimit);
+  }
+
+  @Get(':id')
+  @Roles('client', 'technician', 'company', 'admin')
+  findOne(@Param('id') id: string) {
+    return this.ticketsService.findOne(id);
   }
 
   @Patch(':id/complete')

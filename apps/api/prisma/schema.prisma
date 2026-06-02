@@ -23,6 +23,7 @@ model User {
   zipCode                String?
   latitude               Float?
   longitude              Float?
+  document               String?
   specialties            String[]
   certificates           String[]
   subscriptionActive     Boolean            @default(false)
