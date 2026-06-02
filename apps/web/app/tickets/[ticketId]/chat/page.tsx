@@ -1,7 +1,7 @@
 'use client';
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, use } from 'react';
 import { apiGet, apiPost } from '@/lib/api/client';
 
 type TicketMessage = {
@@ -11,20 +11,22 @@ type TicketMessage = {
   sender: { id: string; name: string; userType: string };
 };
 
-export default function TicketChatPage({ params }: { params: { ticketId: string } }) {
+export default function TicketChatPage({ params: paramsPromise }: { params: Promise<{ ticketId: string }> }) {
+  const params = use(paramsPromise);
+  const ticketId = params.ticketId;
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
 
   const messagesQuery = useQuery({
-    queryKey: ['messages', params.ticketId],
-    queryFn: () => apiGet<TicketMessage[]>(`/tickets/${params.ticketId}/messages`)
+    queryKey: ['messages', ticketId],
+    queryFn: () => apiGet<TicketMessage[]>(`/tickets/${ticketId}/messages`)
   });
 
   const sendMutation = useMutation({
-    mutationFn: () => apiPost(`/tickets/${params.ticketId}/messages`, { content }),
+    mutationFn: () => apiPost(`/tickets/${ticketId}/messages`, { content }),
     onSuccess: () => {
       setContent('');
-      queryClient.invalidateQueries({ queryKey: ['messages', params.ticketId] });
+      queryClient.invalidateQueries({ queryKey: ['messages', ticketId] });
     }
   });
 

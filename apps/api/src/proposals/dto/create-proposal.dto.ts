@@ -9,4 +9,9 @@ export class CreateProposalDto {
   @IsNumber()
   @Min(0)
   estimatedValue?: number;
+
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  visitFee?: number;
 }

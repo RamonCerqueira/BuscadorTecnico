@@ -3,8 +3,208 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model User {
+  id                     String             @id @default(cuid())
+  name                   String
+  email                  String             @unique
+  passwordHash           String
+  userType               UserType
+  phone                  String?
+  avatarUrl              String?
+  bio                    String?
+  address                String?
+  city                   String?
+  state                  String?
+  zipCode                String?
+  latitude               Float?
+  longitude              Float?
+  specialties            String[]
+  certificates           String[]
+  subscriptionActive     Boolean            @default(false)
+  subscriptionExpiresAt  DateTime?
+  stripeCustomerId       String?            @unique
+  stripeConnectAccountId String?            @unique
+  mercadoPagoCustomerId  String?            @unique
+  rating                 Float              @default(0)
+  totalReviews           Int                @default(0)
+  balance                Decimal            @default(0)
+  escrowBalance          Decimal            @default(0)
+  kycStatus              String             @default("pending")
+  kycDetails             String?
+  kycCheckedAt           DateTime?
+  selfieUrl              String?
+  livenessVerified       Boolean            @default(false)
+  acceptedTermsAt        DateTime?
+  signupIpAddress        String?
+  signupUserAgent        String?
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+  materialRefunds        MaterialRefund[]   @relation("ProviderRefunds")
+  notifications          Notification[]
+  portfolio              PortfolioItem[]
+  proposals              Proposal[]
+  pushSubscriptions      PushSubscription[]
+  refreshTokens          RefreshToken[]
+  clientReviews          Review[]           @relation("ClientReviews")
+  providerReviews        Review[]           @relation("ProviderReviews")
+  assigned               Ticket[]           @relation("AssignedTickets")
+  clientTickets          Ticket[]           @relation("ClientTickets")
+  messages               TicketMessage[]    @relation("SenderMessages")
+  reports                TicketReport[]     @relation("UserReports")
+}
+
+model Ticket {
+  id              String           @id @default(cuid())
+  title           String
+  description     String
+  category        String?
+  status          TicketStatus     @default(open)
+  locationText    String
+  latitude        Float?
+  longitude       Float?
+  mediaUrls       String[]
+  aiInsights      String?
+  scheduledAt     DateTime?
+  paymentStatus   String?          @default("none")
+  clientId        String
+  assignedToId    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  materialRefunds MaterialRefund[]
+  payments        Payment[]
+  proposals       Proposal[]
+  review          Review?
+  assignedTo      User?            @relation("AssignedTickets", fields: [assignedToId], references: [id])
+  client          User             @relation("ClientTickets", fields: [clientId], references: [id])
+  messages        TicketMessage[]
+  reports         TicketReport[]
+}
+
+model Payment {
+  id              String   @id @default(cuid())
+  ticketId        String
+  proposalId      String?
+  amount          Decimal
+  currency        String   @default("BRL")
+  status          String
+  stripeSessionId String?  @unique
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  ticket          Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model TicketReport {
+  id          String   @id @default(cuid())
+  ticketId    String
+  reporterId  String
+  reason      String
+  description String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  reporter    User     @relation("UserReports", fields: [reporterId], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model Proposal {
+  id             String         @id @default(cuid())
+  ticketId       String
+  providerId     String
+  message        String
+  estimatedValue Decimal?
+  visitFee       Decimal?       @default(0)
+  status         ProposalStatus @default(pending)
+  signedAt       DateTime?
+  signatureHash  String?
+  createdAt      DateTime       @default(now())
+  provider       User           @relation(fields: [providerId], references: [id])
+  ticket         Ticket         @relation(fields: [ticketId], references: [id])
+}
+
+model TicketMessage {
+  id        String   @id @default(cuid())
+  ticketId  String
+  senderId  String
+  content   String
+  mediaUrls String[]
+  createdAt DateTime @default(now())
+  sender    User     @relation("SenderMessages", fields: [senderId], references: [id])
+  ticket    Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  ticketId   String   @unique
+  clientId   String
+  providerId String
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now())
+  client     User     @relation("ClientReviews", fields: [clientId], references: [id])
+  provider   User     @relation("ProviderReviews", fields: [providerId], references: [id])
+  ticket     Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String
+  tokenHash String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model PortfolioItem {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  beforeUrl   String
+  afterUrl    String
+  category    String?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model MaterialRefund {
+  id          String   @id @default(cuid())
+  ticketId    String
+  providerId  String
+  description String
+  amount      Decimal
+  receiptUrl  String
+  status      String   @default("pending")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  provider    User     @relation("ProviderRefunds", fields: [providerId], references: [id])
+  ticket      Ticket   @relation(fields: [ticketId], references: [id])
+}
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  userId    String
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 enum UserType {
@@ -21,6 +221,7 @@ enum TicketStatus {
   resolved
   closed
   cancelled
+  disputed
 }
 
 enum ProposalStatus {
@@ -28,76 +229,4 @@ enum ProposalStatus {
   accepted
   rejected
   withdrawn
-}
-
-model User {
-  id            String      @id @default(cuid())
-  name          String
-  email         String      @unique
-  passwordHash  String
-  userType      UserType
-  phone         String?
-  specialties   String[]
-  rating        Float       @default(0)
-  totalReviews  Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
-
-  clientTickets Ticket[]    @relation("ClientTickets")
-  assigned      Ticket[]    @relation("AssignedTickets")
-  proposals     Proposal[]
-  messages      TicketMessage[] @relation("SenderMessages")
-  refreshTokens RefreshToken[]
-}
-
-model Ticket {
-  id            String        @id @default(cuid())
-  title         String
-  description   String
-  status        TicketStatus  @default(open)
-  locationText  String
-  clientId      String
-  assignedToId  String?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-
-  client        User          @relation("ClientTickets", fields: [clientId], references: [id])
-  assignedTo    User?         @relation("AssignedTickets", fields: [assignedToId], references: [id])
-  proposals     Proposal[]
-  messages      TicketMessage[]
-}
-
-model Proposal {
-  id             String         @id @default(cuid())
-  ticketId       String
-  providerId     String
-  message        String
-  estimatedValue Decimal?
-  status         ProposalStatus @default(pending)
-  createdAt      DateTime       @default(now())
-
-  ticket         Ticket         @relation(fields: [ticketId], references: [id])
-  provider       User           @relation(fields: [providerId], references: [id])
-}
-
-model TicketMessage {
-  id         String   @id @default(cuid())
-  ticketId   String
-  senderId   String
-  content    String
-  createdAt  DateTime @default(now())
-
-  ticket     Ticket   @relation(fields: [ticketId], references: [id])
-  sender     User     @relation("SenderMessages", fields: [senderId], references: [id])
-}
-
-model RefreshToken {
-  id         String   @id @default(cuid())
-  userId     String
-  tokenHash  String
-  expiresAt  DateTime
-  createdAt  DateTime @default(now())
-  revokedAt  DateTime?
-
-  user       User     @relation(fields: [userId], references: [id])
 }

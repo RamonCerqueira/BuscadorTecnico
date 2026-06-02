@@ -1,90 +1,52 @@
-# Buscador Técnico — Nova Arquitetura (Next.js + NestJS)
+# 🚀 TechFix - Marketplace Técnico com IA
 
-Este repositório foi iniciado como Flask + React, mas está migrando para a stack solicitada:
+Bem-vindo ao TechFix, um ecossistema completo para intermediação de serviços técnicos utilizando Google Gemini Pro para diagnósticos inteligentes e PWA para experiência mobile nativa.
 
-## Frontend
-- Next.js (App Router)
-- React + TypeScript
-- Tailwind CSS + Radix UI
-- Zustand + React Query
+## 🏗️ Estrutura do Projeto
+Este é um Monorepo gerenciado com **pnpm**:
+- `apps/api`: Backend NestJS com Prisma e Google AI.
+- `apps/web`: Frontend Next.js com Tailwind CSS e Framer Motion.
+- `packages/config-*`: Configurações compartilhadas.
 
-## Backend
-- NestJS
-- PostgreSQL
-- Prisma ORM
-- Redis
+## 🛠️ Como Rodar o Sistema
 
-## Infra
-- Docker Compose para ambiente local
-- CI/CD (GitHub Actions)
-- Deploy target: Vercel (web) + Cloud (api/db/redis)
+### 1. Pré-requisitos
+- Node.js 20+
+- pnpm instalado (`npm i -g pnpm`)
+- Banco de Dados PostgreSQL operacional (ou Docker)
+- Redis operacional (para cache e chat)
 
----
-
-## Estrutura
-
-```bash
-apps/
-  web/   # Next.js App Router
-  api/   # NestJS + Prisma
+### 2. Configuração de Variáveis (API)
+Crie o arquivo `apps/api/.env`:
+```env
+DATABASE_URL="postgresql://..."
+REDIS_HOST="localhost"
+JWT_SECRET="sua-senha-super-secreta"
+GOOGLE_AI_API_KEY="SUA_CHAVE_GEMINI_PRO"
+STRIPE_SECRET_KEY="sk_test_..."
+MP_ACCESS_TOKEN="APP_USR-..."
 ```
 
----
-
-## Rodar local com Docker
-
+### 3. Instalação e Build
 ```bash
-docker compose up --build
-```
-
-- Web: http://localhost:3000
-- API: http://localhost:4000/api/health
-
----
-
-## Rodar local sem Docker
-
-```bash
+# Na raiz do projeto:
 pnpm install
-pnpm --filter @buscador/api prisma:generate
+pnpm build
+```
+
+### 4. Execução em Desenvolvimento
+```bash
 pnpm dev
 ```
+- API: `http://localhost:4000`
+- Web: `http://localhost:3000`
+
+## 🧠 Funcionalidades Chave
+- **Diagnóstico IA**: Pré-análise técnica automática de chamados.
+- **PWA**: Instale no celular com experiência nativa.
+- **Geonavegação**: Visão de mapa para técnicos.
+- **Credibilidade**: Upload de certificados e sistema de avaliação.
+- **Pagamentos**: Redundância de checkout (Cartão e PIX).
 
 ---
-
-## Deploy Vercel (evitar versão antiga)
-
-Consulte o guia: [`VERCEL_DEPLOY.md`](./VERCEL_DEPLOY.md).
-
----
-
-## Endpoints já implementados (P1)
-
-### Auth
-- `POST /api/auth/register` cria conta e retorna par de tokens
-- `POST /api/auth/login` autentica usuário
-- `POST /api/auth/refresh` renova access token usando refresh token
-- Rotas de negócio usam `Authorization: Bearer <accessToken>`
-
-### Tickets
-- `POST /api/tickets` cria solicitação
-- `GET /api/tickets` lista solicitações (filtro opcional `status`)
-- `GET /api/marketplace/tickets` lista solicitações abertas para marketplace
-
-### Proposals (orçamentos)
-- `POST /api/tickets/:ticketId/proposals` cria proposta (somente técnico/empresa)
-- `GET /api/tickets/:ticketId/proposals` lista propostas da solicitação
-- `POST /api/proposals/:proposalId/accept` aceita proposta (somente cliente dono)
-- `POST /api/proposals/:proposalId/reject` rejeita proposta (somente cliente dono)
-
-### Chat por solicitação (P1.1)
-- `GET /api/tickets/:ticketId/messages` lista mensagens da solicitação
-- `POST /api/tickets/:ticketId/messages` envia mensagem (cliente dono ou prestador atribuído)
-
----
-
-## Próximos passos da migração
-
-1. Adicionar notificações em tempo real com WebSocket.
-2. Adicionar testes (unit, integration e e2e).
-3. Configurar deploy contínuo (Vercel + serviço cloud para API/DB/Redis).
+Desenvolvido para máxima escala e segurança jurídica.

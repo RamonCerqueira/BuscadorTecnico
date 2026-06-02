@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator';
+import { IsArray, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 export class CreateTicketDto {
   @IsString()
@@ -12,6 +12,15 @@ export class CreateTicketDto {
   @IsString()
   @IsNotEmpty()
   locationText!: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @IsOptional()
+  mediaUrls?: string[];
+
+  @IsString()
+  @IsOptional()
+  category?: string;
 
   @IsString()
   clientId?: string;

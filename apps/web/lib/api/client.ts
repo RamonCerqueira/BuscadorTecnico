@@ -1,6 +1,6 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000/api';
 
-function getAuthHeader() {
+function getAuthHeader(): Record<string, string> {
   if (typeof window === 'undefined') return {};
 
   const raw = window.localStorage.getItem('buscador-session');
@@ -15,6 +15,17 @@ function getAuthHeader() {
   }
 }
 
+async function handleError(res: Response, fallbackMsg: string): Promise<Error> {
+  let errMsg = fallbackMsg;
+  try {
+    const errData = await res.json() as { message?: string | string[] };
+    if (errData && errData.message) {
+      errMsg = Array.isArray(errData.message) ? errData.message[0] : errData.message;
+    }
+  } catch {}
+  return new Error(errMsg);
+}
+
 export async function apiGet<T>(path: string): Promise<T> {
   const res = await fetch(`${API_URL}${path}`, {
     cache: 'no-store',
@@ -22,7 +33,7 @@ export async function apiGet<T>(path: string): Promise<T> {
       ...getAuthHeader()
     }
   });
-  if (!res.ok) throw new Error(`GET ${path} falhou`);
+  if (!res.ok) throw await handleError(res, `GET ${path} falhou`);
   return res.json() as Promise<T>;
 }
 
@@ -36,6 +47,33 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body)
   });
 
-  if (!res.ok) throw new Error(`POST ${path} falhou`);
+  if (!res.ok) throw await handleError(res, `POST ${path} falhou`);
   return res.json() as Promise<T>;
 }
+
+export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'PATCH',
+    headers: {
+      'Content-Type': 'application/json',
+      ...getAuthHeader()
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!res.ok) throw await handleError(res, `PATCH ${path} falhou`);
+  return res.json() as Promise<T>;
+}
+
+export async function apiDelete<T>(path: string): Promise<T> {
+  const res = await fetch(`${API_URL}${path}`, {
+    method: 'DELETE',
+    headers: {
+      ...getAuthHeader()
+    }
+  });
+
+  if (!res.ok) throw await handleError(res, `DELETE ${path} falhou`);
+  return res.json() as Promise<T>;
+}
+

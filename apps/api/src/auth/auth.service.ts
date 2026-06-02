@@ -8,16 +8,18 @@ import { RefreshDto } from './dto/refresh.dto';
 import { compare, hash } from 'bcryptjs';
 import { createHash } from 'crypto';
 import { UserType } from '@prisma/client';
+import { KycService } from '../users/kyc.service';
 
 @Injectable()
 export class AuthService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
-    private readonly config: ConfigService
+    private readonly config: ConfigService,
+    private readonly kycService: KycService
   ) {}
 
-  async register(input: RegisterDto) {
+  async register(input: RegisterDto, ip?: string, userAgent?: string) {
     const exists = await this.prisma.user.findUnique({ where: { email: input.email } });
     if (exists) throw new BadRequestException('Email já cadastrado');
 
@@ -29,9 +31,20 @@ export class AuthService {
         email: input.email,
         passwordHash,
         userType: input.userType,
-        specialties: []
+        bio: input.bio,
+        specialties: input.specialties || [],
+        certificates: input.certificates || [],
+        acceptedTermsAt: input.acceptTerms ? new Date() : null,
+        signupIpAddress: ip || null,
+        signupUserAgent: userAgent || null,
+        kycStatus: input.userType === UserType.client ? 'approved' : 'pending',
       }
     });
+
+    if (user.userType === UserType.technician || user.userType === UserType.company) {
+      // Trigger real automated visual and certificate checks asynchronously
+      this.kycService.triggerBackgroundCheck(user.id);
+    }
 
     return this.issueTokenPair(user.id, user.email, user.userType);
   }
@@ -100,6 +113,29 @@ export class AuthService {
       tokenType: 'Bearer',
       expiresIn: 900
     };
+  }
+
+  async googleLogin(req: any) {
+    if (!req.user) {
+      throw new Error('No user from google');
+    }
+
+    let user = await this.prisma.user.findUnique({
+      where: { email: req.user.email }
+    });
+
+    if (!user) {
+      user = await this.prisma.user.create({
+        data: {
+          email: req.user.email,
+          name: `${req.user.firstName} ${req.user.lastName}`,
+          passwordHash: '', 
+          userType: UserType.client, 
+        }
+      });
+    }
+
+    return this.issueTokenPair(user.id, user.email, user.userType);
   }
 
   private hashToken(token: string) {
