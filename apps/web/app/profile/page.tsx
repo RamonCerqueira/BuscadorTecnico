@@ -368,7 +368,7 @@ export default function ProfilePage() {
                     <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Link Personalizado (Opcional)</label>
                     <div className="flex rounded-xl overflow-hidden border border-slate-200 dark:border-white/10 focus-within:border-cyan-500 focus-within:ring-1 focus-within:ring-cyan-500 transition-all">
                       <span className="flex items-center px-4 bg-slate-100 dark:bg-white/5 text-slate-500 font-bold text-xs select-none">
-                        buscadortecnico.com/profile/
+                        techfix.com/profile/
                       </span>
                       <input
                         className="flex-1 bg-slate-50 dark:bg-black/20 p-4 text-sm font-medium outline-none placeholder-slate-300 dark:placeholder-slate-700 lowercase"

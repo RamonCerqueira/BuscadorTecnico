@@ -263,7 +263,7 @@ export class AiService {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `
-        Você atua como um assistente profissional do Buscador Técnico (TechFix). 
+        Você atua como um assistente profissional da plataforma TechFix. 
         Um técnico quer enviar uma proposta de orçamento para um cliente.
         
         Problema relatado pelo cliente: "${ticketDescription}"

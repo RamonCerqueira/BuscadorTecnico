@@ -72,7 +72,7 @@ export default function SubscriptionPage() {
           Escolha o seu <span className="text-cyan-400">Plano de Acesso</span>
         </motion.h1>
         <p className="text-slate-400 max-w-2xl mx-auto">
-          Tenha acesso exclusivo aos melhores chamados da sua região e aumente seu faturamento mensal com o Buscador Técnico.
+          Tenha acesso exclusivo aos melhores chamados da sua região e aumente seu faturamento mensal com a TechFix.
         </p>
       </div>
 

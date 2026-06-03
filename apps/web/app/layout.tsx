@@ -8,7 +8,7 @@ const outfit = Outfit({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'TechFix Marketplace',
-  description: 'Buscador de Técnicos, Empresas e Serviços',
+  description: 'Encontre e contrate profissionais de serviços gerais e especializados - de técnicos a pintores, pedreiros e costureiras',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,

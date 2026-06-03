@@ -47,10 +47,10 @@ export function ProfileShareModal({ isOpen, onClose, profile }: ProfileShareModa
   const [instagramInfo, setInstagramInfo] = useState(false);
 
   // Dynamic share text and URLs
-  const shareText = `Confira o perfil de ${profile.name} no Buscador Técnico!`;
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://buscadortecnico.com';
+  const shareText = `Confira o perfil de ${profile.name} no TechFix!`;
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://techfix.com';
   const shareUrl = `${origin}/profile/${profile.slug || profile.id}`;
-  const displayUrl = `buscadortecnico.com/profile/${profile.slug || profile.id}`;
+  const displayUrl = `techfix.com/profile/${profile.slug || profile.id}`;
 
   const whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(`${shareText} ${shareUrl}`)}`;
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`;
@@ -168,7 +168,7 @@ export function ProfileShareModal({ isOpen, onClose, profile }: ProfileShareModa
                   {/* Top Label */}
                   <div className="flex items-center gap-2 mb-6">
                     <div className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Buscador Técnico</span>
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">TechFix</span>
                   </div>
 
                   {/* Avatar com Selo de Verificado */}
@@ -225,7 +225,7 @@ export function ProfileShareModal({ isOpen, onClose, profile }: ProfileShareModa
                 {/* Top Label */}
                 <div className="flex items-center gap-1.5 mb-4">
                   <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">Buscador Técnico</span>
+                  <span className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">TechFix</span>
                 </div>
 
                 {/* Avatar com Selo de Verificado */}

@@ -15,7 +15,7 @@ export function SiteFooter() {
               <span>Tech<span className="text-blue-600">Fix</span></span>
             </Link>
             <p className="text-sm text-slate-500 leading-relaxed font-medium">
-              O maior ecossistema de serviços técnicos da América Latina. Segurança, rapidez e qualidade garantida em cada detalhe.
+              O maior ecossistema de serviços gerais e especializados da América Latina. Segurança, rapidez e qualidade garantida em cada detalhe.
             </p>
           </div>
 
