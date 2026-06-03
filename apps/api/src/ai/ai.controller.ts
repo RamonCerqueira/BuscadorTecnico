@@ -8,8 +8,8 @@ export class AiController {
 
   @Post('diagnostic')
   @UseGuards(JwtAuthGuard)
-  async getDiagnostic(@Body() body: { description: string }) {
-    const result = await this.aiService.getDiagnostic(body.description);
+  async getDiagnostic(@Body() body: { description: string; isTechnician?: boolean }) {
+    const result = await this.aiService.getDiagnostic(body.description, body.isTechnician);
     return { result };
   }
 
@@ -21,5 +21,12 @@ export class AiController {
     @Query('city') city: string
   ) {
     return this.aiService.suggestPricing(category, description, city);
+  }
+
+  @Post('generate-proposal')
+  @UseGuards(JwtAuthGuard)
+  async generateProposal(@Body() body: { notes: string; ticketDescription: string }) {
+    const text = await this.aiService.generateProposal(body.notes, body.ticketDescription);
+    return { text };
   }
 }

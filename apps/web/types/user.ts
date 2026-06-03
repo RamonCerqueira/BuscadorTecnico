@@ -1,0 +1,44 @@
+export type UserType = 'client' | 'technician' | 'company' | 'admin';
+
+export type UserProfile = {
+  id: string;
+  slug?: string;
+  name: string;
+  userType: UserType;
+  email?: string;
+  phone?: string;
+  bio?: string;
+  avatarUrl?: string;
+  coverUrl?: string;
+  city?: string;
+  state?: string;
+  specialties?: string[];
+  certificates?: string[];
+  rating?: number;
+  totalReviews?: number;
+  kycStatus?: string;
+  livenessVerified?: boolean;
+  subscriptionActive?: boolean;
+  balance?: number;
+  escrowBalance?: number;
+  companyName?: string;
+  cnpj?: string;
+  selfieUrl?: string;
+  kycDetails?: string;
+  services?: any[];
+  faqs?: any[];
+};
+
+export type Professional = {
+  id: string;
+  name: string;
+  avatarUrl?: string;
+  specialties: string[];
+  rating: number;
+  totalReviews: number;
+  city?: string;
+  state?: string;
+  bio?: string;
+  kycStatus?: string;
+  livenessVerified?: boolean;
+};

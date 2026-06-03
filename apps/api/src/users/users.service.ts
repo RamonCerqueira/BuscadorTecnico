@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, ConflictException } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { PrismaService } from '../prisma/prisma.service';
@@ -16,6 +16,7 @@ export class UsersService {
       where: { id: userId },
       select: {
         id: true,
+        slug: true,
         name: true,
         email: true,
         userType: true,
@@ -52,7 +53,89 @@ export class UsersService {
     return user;
   }
 
+  async getUserPublicProfile(idOrSlug: string) {
+    const user = await this.prisma.user.findFirst({
+      where: {
+        OR: [
+          { id: idOrSlug },
+          { slug: idOrSlug }
+        ]
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        userType: true,
+        avatarUrl: true,
+        coverUrl: true,
+        bio: true,
+        city: true,
+        state: true,
+        specialties: true,
+        certificates: true,
+        rating: true,
+        totalReviews: true,
+        kycStatus: true,
+        livenessVerified: true,
+        createdAt: true,
+        // Upgrade de Vendas
+        services: true,
+        faqs: true,
+      },
+    });
+
+    if (!user) throw new NotFoundException('Perfil não encontrado');
+
+    // Se for cliente, preserva a privacidade ocultando o sobrenome completo
+    if (user.userType === 'client') {
+      const nameParts = user.name.split(' ');
+      if (nameParts.length > 1) {
+        user.name = `${nameParts[0]} ${nameParts[nameParts.length - 1].charAt(0)}.`;
+      }
+    }
+
+    return user;
+  }
+
+  // --- Upgrades de Vendas ---
+  async addService(userId: string, data: { title: string; description?: string; price?: number }) {
+    return this.prisma.serviceMenu.create({
+      data: {
+        ...data,
+        userId,
+      },
+    });
+  }
+
+  async removeService(userId: string, serviceId: string) {
+    return this.prisma.serviceMenu.deleteMany({
+      where: { id: serviceId, userId },
+    });
+  }
+
+  async addFaq(userId: string, data: { question: string; answer: string }) {
+    return this.prisma.faqItem.create({
+      data: {
+        ...data,
+        userId,
+      },
+    });
+  }
+
+  async removeFaq(userId: string, faqId: string) {
+    return this.prisma.faqItem.deleteMany({
+      where: { id: faqId, userId },
+    });
+  }
+
   async updateProfile(userId: string, data: UpdateProfileDto) {
+    if (data.slug) {
+      const existing = await this.prisma.user.findUnique({ where: { slug: data.slug } });
+      if (existing && existing.id !== userId) {
+        throw new ConflictException('Este nome de usuário já está em uso.');
+      }
+    }
+
     return this.prisma.user.update({
       where: { id: userId },
       data,
@@ -181,6 +264,8 @@ export class UsersService {
     });
     
     const totalEarned = completedPayments.reduce((sum, p) => sum + Number(p.amount), 0);
+    const averageEarned = totalJobs > 0 ? totalEarned / totalJobs : 0;
+    const taxSavings = totalEarned * 0.15;
 
     return {
       balance: Number(user.balance),
@@ -190,8 +275,10 @@ export class UsersService {
       totalJobs,
       pendingProposals,
       totalEarned,
-      platformFee: totalEarned * 0.15,
-      netEarnings: totalEarned * 0.85
+      averageEarned,
+      taxSavings,
+      platformFee: 0,
+      netEarnings: totalEarned
     };
   }
 }

@@ -31,7 +31,7 @@ export default function LoginPage() {
         if (payload.userType === 'admin') {
           router.push('/admin');
         } else if (payload.userType === 'technician' || payload.userType === 'company') {
-          router.push('/technician/dashboard');
+          router.push('/opportunities');
         } else {
           router.push('/dashboard');
         }

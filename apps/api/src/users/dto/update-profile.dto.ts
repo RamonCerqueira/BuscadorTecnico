@@ -1,6 +1,11 @@
-import { IsOptional, IsString, IsNumber, IsArray, IsUrl } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsArray, Matches } from 'class-validator';
 
 export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  @Matches(/^[a-z0-9-]+$/, { message: 'O link personalizado pode conter apenas letras minúsculas, números e hifens.' })
+  slug?: string;
+
   @IsOptional()
   @IsString()
   name?: string;
@@ -12,6 +17,10 @@ export class UpdateProfileDto {
   @IsOptional()
   @IsString()
   avatarUrl?: string;
+
+  @IsOptional()
+  @IsString()
+  coverUrl?: string;
 
   @IsOptional()
   @IsString()

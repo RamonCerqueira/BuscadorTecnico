@@ -12,11 +12,21 @@ export class AiService {
     this.genAI = new GoogleGenerativeAI(apiKey || 'MOCK_KEY');
   }
 
-  async getDiagnostic(description: string) {
+  async getDiagnostic(description: string, isTechnician?: boolean) {
     try {
       const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       
-      const prompt = `
+      const prompt = isTechnician
+        ? `
+        Aja como um engenheiro especialista sênior. Um técnico de campo relatou o seguinte sintoma/problema em um equipamento: "${description}".
+        Forneça uma análise técnica avançada (máximo 800 caracteres) incluindo:
+        1. Prováveis componentes defeituosos ou falhas lógicas.
+        2. Procedimentos e testes de bancada/multímetro recomendados.
+        3. Dicas de segurança ou possíveis pegadinhas comuns deste defeito.
+        
+        Responda utilizando jargões técnicos adequados de forma direta e estruturada. Formate a resposta de modo legível.
+        `
+        : `
         Aja como um assistente técnico especializado. Um cliente descreveu o seguinte problema: "${description}".
         Forneça um pré-diagnóstico curto (máximo 400 caracteres) incluindo:
         1. Possível causa.
@@ -246,6 +256,32 @@ export class AiService {
     } catch (error) {
       this.logger.error('Erro ao sugerir faixa de preço via Gemini', error);
       return { minPrice: 100, maxPrice: 300, reason: 'Faixa estimada padrão para serviços gerais.' };
+    }
+  }
+
+  async generateProposal(notes: string, ticketDescription: string): Promise<string> {
+    try {
+      const model = this.genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `
+        Você atua como um assistente profissional do Buscador Técnico (TechFix). 
+        Um técnico quer enviar uma proposta de orçamento para um cliente.
+        
+        Problema relatado pelo cliente: "${ticketDescription}"
+        Anotações rascunhadas do técnico: "${notes}"
+        
+        Escreva uma proposta final educada, clara e persuasiva baseada nessas anotações, pronta para o cliente ler. 
+        Não invente valores ou prazos não mencionados nas anotações, use apenas o que foi fornecido.
+        Corrija erros gramaticais das anotações e estruture em 1 ou 2 parágrafos curtos e diretos, focando em profissionalismo.
+        
+        Responda apenas com o texto da proposta final.
+      `;
+
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      return response.text().trim();
+    } catch (error) {
+      this.logger.error('Erro ao gerar proposta automática via Gemini', error);
+      return notes;
     }
   }
 }

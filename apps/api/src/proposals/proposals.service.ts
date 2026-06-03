@@ -142,23 +142,32 @@ export class ProposalsService {
     if (proposal.providerId !== providerId) {
       throw new BadRequestException('Apenas o prestador dono da proposta pode alterar o valor');
     }
-    if (proposal.status !== ProposalStatus.accepted) {
-      throw new BadRequestException('Apenas propostas aceitas podem ter o valor atualizado após a visita');
-    }
-    if (proposal.ticket.status !== TicketStatus.in_progress) {
-      throw new BadRequestException('O ticket correspondente deve estar em andamento');
+
+    if (proposal.status === ProposalStatus.accepted) {
+      if (proposal.ticket.status !== TicketStatus.in_progress) {
+        throw new BadRequestException('O ticket correspondente deve estar em andamento para atualizar o valor de uma proposta aceita');
+      }
+    } else if (proposal.status === ProposalStatus.pending) {
+      if (proposal.ticket.status !== TicketStatus.open && proposal.ticket.status !== TicketStatus.quoted) {
+        throw new BadRequestException('O chamado deve estar aberto para negociar o valor');
+      }
+    } else {
+      throw new BadRequestException('Apenas propostas aceitas ou pendentes podem ter o valor atualizado');
     }
 
     const updated = await this.prisma.proposal.update({
       where: { id: proposalId },
-      data: { estimatedValue: amount }
+      data: { 
+        estimatedValue: amount,
+        counterOfferStatus: 'none' // Reset client counter offer if technician counter-offers/updates value
+      }
     });
 
     // Enviar notificação ao cliente informando do novo orçamento definido pelo técnico
     this.notificationsService.create({
       userId: proposal.ticket.clientId,
       title: 'Orçamento Atualizado',
-      message: `O técnico atualizou o valor do orçamento do chamado "${proposal.ticket.title}" para R$ ${amount}.`,
+      message: `O técnico atualizou o valor do orçamento do chamado "${proposal.ticket.title}" para R$ ${amount.toFixed(2)}.`,
       type: 'proposal',
       link: `/tickets/${proposal.ticketId}`
     }).catch(err => console.error('Notificação de orçamento atualizado falhou:', err));
@@ -184,5 +193,134 @@ export class ProposalsService {
         signatureHash
       }
     });
+  }
+
+  async createCounterOffer(proposalId: string, amount: number, clientId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { ticket: true }
+    });
+
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+    if (proposal.ticket.clientId !== clientId) {
+      throw new BadRequestException('Apenas o dono do ticket pode solicitar desconto');
+    }
+    if (proposal.status !== ProposalStatus.pending) {
+      throw new BadRequestException('Apenas propostas pendentes podem receber contraproposta de valor');
+    }
+    if (proposal.ticket.status !== TicketStatus.open && proposal.ticket.status !== TicketStatus.quoted) {
+      throw new BadRequestException('O chamado correspondente deve estar aberto');
+    }
+
+    const updated = await this.prisma.proposal.update({
+      where: { id: proposalId },
+      data: {
+        counterOfferValue: amount,
+        counterOfferStatus: 'pending'
+      }
+    });
+
+    // Notificar o prestador sobre a proposta de desconto
+    this.notificationsService.create({
+      userId: proposal.providerId,
+      title: '💰 Solicitação de Desconto',
+      message: `O cliente solicitou desconto de R$ ${amount.toFixed(2)} no chamado "${proposal.ticket.title}".`,
+      type: 'proposal',
+      link: `/tickets/${proposal.ticketId}`
+    }).catch(err => console.error('Falha ao enviar notificação de contraproposta:', err));
+
+    return updated;
+  }
+
+  async acceptCounterOffer(proposalId: string, providerId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { ticket: true }
+    });
+
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+    if (proposal.providerId !== providerId) {
+      throw new BadRequestException('Apenas o prestador dono da proposta pode aceitar o desconto');
+    }
+    if (proposal.counterOfferStatus !== 'pending' || !proposal.counterOfferValue) {
+      throw new BadRequestException('Não há nenhuma proposta de desconto pendente para este orçamento');
+    }
+
+    const finalAmount = Number(proposal.counterOfferValue);
+
+    return this.prisma.$transaction(async (tx) => {
+      // Rejeitar as outras propostas
+      await tx.proposal.updateMany({
+        where: {
+          ticketId: proposal.ticketId,
+          id: { not: proposal.id },
+          status: ProposalStatus.pending
+        },
+        data: { status: ProposalStatus.rejected }
+      });
+
+      // Aceitar esta proposta com o valor final acordado
+      const accepted = await tx.proposal.update({
+        where: { id: proposal.id },
+        data: {
+          estimatedValue: finalAmount,
+          status: ProposalStatus.accepted,
+          counterOfferStatus: 'accepted'
+        }
+      });
+
+      // Atualizar o chamado para em andamento
+      await tx.ticket.update({
+        where: { id: proposal.ticketId },
+        data: {
+          status: TicketStatus.in_progress,
+          assignedToId: proposal.providerId
+        }
+      });
+
+      // Enviar notificação ao cliente informando do início do chamado
+      this.notificationsService.create({
+        userId: proposal.ticket.clientId,
+        title: '✅ Desconto Aceito!',
+        message: `O técnico aceitou sua contraproposta de R$ ${finalAmount.toFixed(2)}! O atendimento foi iniciado e o chat foi liberado.`,
+        type: 'info',
+        link: `/tickets/${proposal.ticketId}`
+      }).catch(err => console.error('Notificação de desconto aceito falhou:', err));
+
+      return accepted;
+    });
+  }
+
+  async rejectCounterOffer(proposalId: string, providerId: string) {
+    const proposal = await this.prisma.proposal.findUnique({
+      where: { id: proposalId },
+      include: { ticket: true }
+    });
+
+    if (!proposal) throw new NotFoundException('Proposta não encontrada');
+    if (proposal.providerId !== providerId) {
+      throw new BadRequestException('Apenas o prestador dono da proposta pode rejeitar o desconto');
+    }
+    if (proposal.counterOfferStatus !== 'pending') {
+      throw new BadRequestException('Não há nenhuma proposta de desconto pendente para este orçamento');
+    }
+
+    const updated = await this.prisma.proposal.update({
+      where: { id: proposalId },
+      data: {
+        counterOfferStatus: 'rejected'
+      }
+    });
+
+    // Notificar cliente da recusa do desconto
+    this.notificationsService.create({
+      userId: proposal.ticket.clientId,
+      title: '❌ Desconto Recusado',
+      message: `O técnico recusou sua proposta de desconto no chamado "${proposal.ticket.title}".`,
+      type: 'info',
+      link: `/tickets/${proposal.ticketId}`
+    }).catch(err => console.error('Notificação de desconto recusado falhou:', err));
+
+    return updated;
   }
 }

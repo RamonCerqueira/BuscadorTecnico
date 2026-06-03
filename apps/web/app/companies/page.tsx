@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { useQuery } from '@tanstack/react-query';
+import { Professional } from '@/types/user';
 import { apiGet } from '@/lib/api/client';
 import { SkeletonCard } from '@/components/ui/skeleton';
 import { useSessionStore } from '@/lib/store';
@@ -19,20 +20,6 @@ import {
   Briefcase,
   User
 } from 'lucide-react';
-
-type Professional = {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-  specialties: string[];
-  rating: number;
-  totalReviews: number;
-  city: string;
-  state: string;
-  bio?: string;
-  kycStatus?: string;
-  livenessVerified?: boolean;
-};
 
 export default function CompaniesPage() {
   const { token } = useSessionStore();

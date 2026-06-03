@@ -14,16 +14,7 @@ import {
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
-type Ticket = {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  status: string;
-  createdAt: string;
-  assignedToId?: string;
-  paymentStatus: string;
-};
+import { Ticket } from '@/types/ticket';
 
 export default function TicketsPage() {
   const { userType, token } = useSessionStore();

@@ -41,6 +41,14 @@ export default function TicketDetailPage() {
   const [proposalDate, setProposalDate] = useState('');
   const [proposalMessage, setProposalMessage] = useState('');
   
+  // Finalize State
+  const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false);
+  const [finalizeAmount, setFinalizeAmount] = useState('');
+
+  // Bargain/Negotiation States
+  const [discountInputProposalId, setDiscountInputProposalId] = useState<string | null>(null);
+  const [discountInputAmount, setDiscountInputAmount] = useState('');
+  
   // Material Refund States
   const [refundDesc, setRefundDesc] = useState('');
   const [refundAmount, setRefundAmount] = useState('');
@@ -62,6 +70,13 @@ export default function TicketDetailPage() {
   const ticketQuery = useQuery({
     queryKey: ['ticket', id],
     queryFn: () => apiGet<any>(`/tickets/${id}`),
+  });
+
+  const improveMessageMutation = useMutation({
+    mutationFn: (data: { notes: string; ticketDescription: string }) => apiPost<{ text: string }>('/ai/generate-proposal', data),
+    onSuccess: (data) => {
+      setProposalMessage(data.text);
+    }
   });
 
   const createProposalMutation = useMutation({
@@ -103,6 +118,64 @@ export default function TicketDetailPage() {
     onSuccess: () => {
       ticketQuery.refetch();
       setIsReviewModalOpen(false);
+    }
+  });
+
+  const finalizeTechMutation = useMutation({
+    mutationFn: (amount: number) => apiPatch<any>(`/tickets/${id}/finalize-tech`, { amount }),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      setIsFinalizeModalOpen(false);
+      alert('Atendimento finalizado com sucesso!');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao finalizar atendimento. Tente novamente.');
+    }
+  });
+
+  const rejectProposalMutation = useMutation({
+    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/reject`, {}),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      alert('Proposta recusada com sucesso.');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao recusar proposta.');
+    }
+  });
+
+  const counterOfferMutation = useMutation({
+    mutationFn: (data: { proposalId: string, amount: number }) => apiPost(`/proposals/${data.proposalId}/counter-offer`, { amount: data.amount }),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      setDiscountInputProposalId(null);
+      setDiscountInputAmount('');
+      alert('Contraproposta de desconto enviada com sucesso!');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao solicitar desconto.');
+    }
+  });
+
+  const acceptCounterOfferMutation = useMutation({
+    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/accept-counter-offer`, {}),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      alert('Contraproposta aceita! O chamado foi iniciado.');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao aceitar contraproposta.');
+    }
+  });
+
+  const rejectCounterOfferMutation = useMutation({
+    mutationFn: (proposalId: string) => apiPost(`/proposals/${proposalId}/reject-counter-offer`, {}),
+    onSuccess: () => {
+      ticketQuery.refetch();
+      alert('Contraproposta recusada.');
+    },
+    onError: (err: any) => {
+      alert(err.message || 'Erro ao recusar contraproposta.');
     }
   });
 
@@ -244,6 +317,56 @@ export default function TicketDetailPage() {
 
   if (!ticket) return <div className="p-20 text-center">Chamado não encontrado.</div>;
 
+  const getStatusBadge = () => {
+    switch (ticket.status) {
+      case 'open':
+        return (
+          <span className="rounded-full bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border border-emerald-100 dark:border-emerald-500/20">
+            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            Aberto para Orçamentos
+          </span>
+        );
+      case 'quoted':
+        return (
+          <span className="rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border border-blue-100 dark:border-blue-500/20">
+            <div className="h-2 w-2 rounded-full bg-blue-500" />
+            Recebendo Orçamentos
+          </span>
+        );
+      case 'in_progress':
+        return (
+          <span className="rounded-full bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border border-amber-100 dark:border-amber-500/20">
+            <div className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
+            Atendimento em Andamento
+          </span>
+        );
+      case 'resolved':
+      case 'closed':
+        return (
+          <span className="rounded-full bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border border-emerald-200 dark:border-emerald-500/30">
+            <div className="h-2 w-2 rounded-full bg-emerald-600" />
+            Atendimento Finalizado
+          </span>
+        );
+      case 'disputed':
+        return (
+          <span className="rounded-full bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 border border-rose-100 dark:border-rose-500/20">
+            <div className="h-2 w-2 rounded-full bg-rose-500 animate-pulse" />
+            Em Disputa
+          </span>
+        );
+      case 'cancelled':
+        return (
+          <span className="rounded-full bg-slate-100 dark:bg-white/10 text-slate-500 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full bg-slate-400" />
+            Cancelado
+          </span>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <main className="mx-auto min-h-screen w-full max-w-6xl px-4 py-12 sm:px-6 bg-[#f8fafc] dark:bg-[#0a0a0a] text-slate-900 dark:text-slate-200">
       {/* Banner de Garantias Exclusivas On-Platform */}
@@ -270,10 +393,7 @@ export default function TicketDetailPage() {
         <section className="lg:col-span-2 space-y-8">
           <div className="glass-card bg-white dark:bg-white/5 p-10 border-none dark:border-white/10 shadow-2xl dark:shadow-none">
             <div className="flex flex-wrap items-center gap-3 mb-6">
-              <span className={`rounded-full px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest flex items-center gap-1.5 ${ticket.paymentStatus === 'escrow' ? 'bg-blue-50 text-blue-600 outline-blue-100' : 'bg-emerald-50 text-emerald-600 outline-emerald-100'}`}>
-                <div className={`h-2 w-2 rounded-full animate-pulse ${ticket.paymentStatus === 'escrow' ? 'bg-blue-500' : 'bg-emerald-500'}`} />
-                {ticket.paymentStatus === 'escrow' ? 'Pagamento Protegido em Escrow' : 'Aberto para Orçamentos'}
-              </span>
+              {getStatusBadge()}
               <span className="rounded-full bg-slate-100 dark:bg-white/10 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
                 Postado {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
               </span>
@@ -559,6 +679,33 @@ export default function TicketDetailPage() {
                     </p>
                   </div>
 
+                  {myProposal.status === 'pending' && myProposal.counterOfferStatus === 'pending' && (
+                    <div className="rounded-2xl bg-amber-50 dark:bg-amber-900/10 p-5 border border-amber-200 dark:border-amber-800/30 space-y-3">
+                      <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-widest text-amber-600 dark:text-amber-400">
+                        <Sparkles size={14} className="animate-pulse" /> Desconto Solicitado!
+                      </div>
+                      <p className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                        O cliente solicitou pagar <span className="text-amber-600 dark:text-amber-400 font-extrabold text-lg">R$ {Number(myProposal.counterOfferValue).toFixed(2)}</span> por este serviço.
+                      </p>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => acceptCounterOfferMutation.mutate(myProposal.id)}
+                          disabled={acceptCounterOfferMutation.isPending || rejectCounterOfferMutation.isPending}
+                          className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 border-none"
+                        >
+                          {acceptCounterOfferMutation.isPending ? 'Aceitando...' : 'Aceitar'}
+                        </button>
+                        <button
+                          onClick={() => rejectCounterOfferMutation.mutate(myProposal.id)}
+                          disabled={acceptCounterOfferMutation.isPending || rejectCounterOfferMutation.isPending}
+                          className="flex-1 bg-rose-600 hover:bg-rose-500 text-white font-bold py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 border-none"
+                        >
+                          {rejectCounterOfferMutation.isPending ? 'Recusando...' : 'Recusar'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {myProposal.status === 'pending' && (
                     <div className="pt-6 border-t border-slate-100 dark:border-white/10 space-y-3 mt-4">
                       <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Atualizar Valor (Negociação)</label>
@@ -583,6 +730,27 @@ export default function TicketDetailPage() {
                       <p className="text-[10px] text-slate-400 font-medium text-center">
                         O cliente será notificado caso você altere o valor do orçamento.
                       </p>
+                    </div>
+                  )}
+
+                  {myProposal.status === 'accepted' && ticket.status === 'in_progress' && (
+                    <div className="pt-6 border-t border-slate-100 dark:border-white/10 space-y-3 mt-4">
+                      <button
+                        onClick={() => setIsChatOpen(true)}
+                        className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 border-none"
+                      >
+                        <MessageCircle size={18} /> Chat com o Cliente
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setFinalizeAmount(myProposal.estimatedValue ? String(myProposal.estimatedValue) : '');
+                          setIsFinalizeModalOpen(true);
+                        }}
+                        className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 border-none"
+                      >
+                        Finalizar Atendimento <CheckCircle2 size={16} />
+                      </button>
                     </div>
                   )}
                 </div>
@@ -641,6 +809,17 @@ export default function TicketDetailPage() {
                          value={proposalMessage}
                          onChange={(e) => setProposalMessage(e.target.value)}
                        />
+                       <button
+                         onClick={() => {
+                           if (!proposalMessage) return;
+                           improveMessageMutation.mutate({ notes: proposalMessage, ticketDescription: ticket.description });
+                         }}
+                         disabled={!proposalMessage || improveMessageMutation.isPending}
+                         className="w-full mt-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold py-3 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-blue-500/20"
+                       >
+                         {improveMessageMutation.isPending ? <Sparkles size={16} className="animate-spin" /> : <Sparkles size={16} />}
+                         {improveMessageMutation.isPending ? 'Redigindo...' : '✨ Melhorar Texto com IA'}
+                       </button>
                     </div>
 
                     <button 
@@ -700,11 +879,13 @@ export default function TicketDetailPage() {
                       {proposal.message}
                     </p>
 
-                    {ticket.paymentStatus === 'escrow' ? (
+                    {(ticket.paymentStatus === 'escrow' || ticket.status === 'in_progress') ? (
                        <div className="space-y-4">
-                          <button className="w-full bg-emerald-50 text-emerald-600 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2" disabled>
-                             <CheckCircle2 size={16} /> Pagamento Confirmado
-                          </button>
+                          {(ticket.paymentStatus === 'escrow' || ticket.status === 'in_progress') && (
+                            <button className="w-full bg-emerald-50 text-emerald-600 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2" disabled>
+                               <CheckCircle2 size={16} /> {ticket.status === 'in_progress' ? 'Atendimento Iniciado' : 'Pagamento Confirmado'}
+                            </button>
+                          )}
                           
                           {/* 4.5 — Assinatura Digital do Contrato / Proposta */}
                           {proposal.status === 'accepted' && (
@@ -769,7 +950,7 @@ export default function TicketDetailPage() {
                           <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/10">
                             <button
                               onClick={() => setIsChatOpen(true)}
-                              className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2"
+                              className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white py-3.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all shadow-lg shadow-[#25D366]/20 flex items-center justify-center gap-2 border-none"
                             >
                               <MessageCircle size={18} /> Chat com o Técnico
                             </button>
@@ -778,20 +959,96 @@ export default function TicketDetailPage() {
                           {ticket.status === 'in_progress' && (
                              <button 
                                onClick={() => setIsReviewModalOpen(true)}
-                               className="w-full bg-emerald-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2"
+                               className="w-full bg-emerald-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-emerald-500 active:scale-[0.98] transition-all shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 border-none"
                              >
                                Confirmar Conclusão <Zap size={16} />
                              </button>
                           )}
                        </div>
                     ) : (
-                      <button 
-                        onClick={() => payMutation.mutate(proposal.id)}
-                        disabled={payMutation.isPending}
-                        className="w-full bg-blue-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2"
-                      >
-                        {payMutation.isPending ? 'Redirecionando...' : 'Aceitar e Pagar'} <ArrowRight size={16} />
-                      </button>
+                      <div className="space-y-3">
+                        {proposal.status === 'rejected' ? (
+                          <div className="text-xs font-black text-rose-600 bg-rose-50 dark:bg-rose-500/10 p-3.5 rounded-xl border border-rose-100 dark:border-rose-500/20 text-center uppercase tracking-widest animate-none">
+                            Proposta Recusada
+                          </div>
+                        ) : proposal.counterOfferStatus === 'pending' ? (
+                          <div className="text-xs font-black text-amber-600 bg-amber-50 dark:bg-amber-500/10 p-3.5 rounded-xl border border-amber-100 dark:border-amber-500/20 text-center uppercase tracking-widest animate-pulse">
+                            Contraproposta de R$ {Number(proposal.counterOfferValue).toFixed(2)} enviada. Aguardando retorno.
+                          </div>
+                        ) : (
+                          <>
+                            {proposal.counterOfferStatus === 'rejected' && (
+                              <div className="text-xs font-semibold text-rose-600 dark:text-rose-400 bg-rose-500/5 p-3.5 rounded-xl border border-rose-500/10 mb-3">
+                                ⚠️ Sua proposta de desconto de R$ {Number(proposal.counterOfferValue).toFixed(2)} foi recusada pelo técnico.
+                              </div>
+                            )}
+
+                            <button 
+                              onClick={() => payMutation.mutate(proposal.id)}
+                              disabled={payMutation.isPending}
+                              className="w-full bg-blue-600 text-white py-4 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-blue-500 active:scale-[0.98] transition-all shadow-lg shadow-blue-500/20 flex items-center justify-center gap-2 border-none"
+                            >
+                              {payMutation.isPending ? 'Redirecionando...' : 'Aceitar e Pagar'} <ArrowRight size={16} />
+                            </button>
+
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => {
+                                  setDiscountInputProposalId(proposal.id);
+                                  setDiscountInputAmount('');
+                                }}
+                                disabled={discountInputProposalId === proposal.id}
+                                className="flex-1 bg-slate-100 dark:bg-white/5 hover:bg-slate-200 dark:hover:bg-white/10 text-slate-700 dark:text-slate-300 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all border-none"
+                              >
+                                Solicitar Desconto
+                              </button>
+
+                              <button
+                                onClick={() => rejectProposalMutation.mutate(proposal.id)}
+                                disabled={rejectProposalMutation.isPending}
+                                className="flex-1 bg-rose-600/10 hover:bg-rose-600/20 text-rose-600 font-bold py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all border-none"
+                              >
+                                {rejectProposalMutation.isPending ? '...' : 'Recusar'}
+                              </button>
+                            </div>
+
+                            {discountInputProposalId === proposal.id && (
+                              <div className="mt-3 p-4 bg-slate-50 dark:bg-white/5 rounded-2xl border border-slate-100 dark:border-white/5 space-y-3">
+                                <label className="text-[10px] font-black uppercase tracking-widest text-slate-400">Quanto você deseja pagar?</label>
+                                <div className="flex gap-2">
+                                  <div className="relative flex-1">
+                                    <DollarSign size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <input
+                                      className="input-field !pl-9 h-11 text-xs font-bold w-full bg-white text-slate-900 dark:text-white"
+                                      placeholder="Digite o valor"
+                                      value={discountInputAmount}
+                                      onChange={(e) => setDiscountInputAmount(e.target.value)}
+                                    />
+                                  </div>
+                                  <button
+                                    onClick={() => {
+                                      if (!discountInputAmount || isNaN(Number(discountInputAmount))) {
+                                        return alert('Insira um valor válido.');
+                                      }
+                                      counterOfferMutation.mutate({ proposalId: proposal.id, amount: Number(discountInputAmount) });
+                                    }}
+                                    disabled={counterOfferMutation.isPending || !discountInputAmount}
+                                    className="btn-primary px-5 rounded-xl text-[10px] font-black uppercase tracking-widest border-none"
+                                  >
+                                    {counterOfferMutation.isPending ? '...' : 'Enviar'}
+                                  </button>
+                                  <button
+                                    onClick={() => setDiscountInputProposalId(null)}
+                                    className="p-3 bg-slate-200 dark:bg-white/5 hover:bg-slate-300 rounded-xl text-slate-500 hover:text-slate-700 dark:hover:text-white transition-colors border-none"
+                                  >
+                                    <X size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
                   </div>
                 ))}
@@ -895,6 +1152,71 @@ export default function TicketDetailPage() {
                   <button 
                     onClick={() => setIsReviewModalOpen(false)}
                     className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 py-2"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Finalize Atendimento Modal for Technician/Company */}
+      <AnimatePresence>
+        {isFinalizeModalOpen && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div 
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsFinalizeModalOpen(false)}
+              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            />
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl border border-slate-100 dark:border-white/5"
+            >
+              <div className="text-center space-y-6">
+                <div className="mx-auto h-20 w-20 rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30">
+                   <CheckCircle2 size={40} />
+                </div>
+                <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Finalizar Atendimento</h2>
+                <p className="text-slate-500 dark:text-slate-400 font-medium">
+                  Confirme o valor final recebido por este atendimento. Este valor será contabilizado em seu faturamento no painel financeiro (apenas para visualização).
+                </p>
+                
+                <div className="space-y-2 text-left">
+                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor Recebido (R$)</label>
+                   <div className="relative">
+                     <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                     <input 
+                       className="input-field !pl-12 h-14 text-xl font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10" 
+                       placeholder="0,00" 
+                       value={finalizeAmount}
+                       onChange={(e) => setFinalizeAmount(e.target.value)}
+                     />
+                   </div>
+                </div>
+
+                <div className="flex flex-col gap-3 pt-4">
+                  <button 
+                    onClick={() => {
+                      if (!finalizeAmount || isNaN(Number(finalizeAmount))) {
+                        return alert('Por favor, insira um valor válido.');
+                      }
+                      finalizeTechMutation.mutate(Number(finalizeAmount));
+                    }}
+                    disabled={finalizeTechMutation.isPending}
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-5 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 border-none"
+                  >
+                    {finalizeTechMutation.isPending ? 'Finalizando...' : 'Confirmar e Finalizar'} <CheckCircle2 size={20} />
+                  </button>
+                  <button 
+                    onClick={() => setIsFinalizeModalOpen(false)}
+                    className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-white py-2"
                   >
                     Cancelar
                   </button>

@@ -258,8 +258,8 @@ export class TicketsService {
       const review = await tx.review.create({
         data: {
           ticketId,
-          clientId,
-          providerId,
+          reviewerId: clientId,
+          revieweeId: providerId,
           rating: data.rating,
           comment: data.comment
         }
@@ -308,6 +308,122 @@ export class TicketsService {
 
       return review;
     });
+  }
+
+  async createReview(ticketId: string, reviewerId: string, data: CompleteTicketDto) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId }
+    });
+
+    if (!ticket) throw new NotFoundException('Ticket não encontrado');
+    if (ticket.status !== 'resolved' && ticket.status !== 'closed') {
+      throw new BadRequestException('O chamado deve estar concluído para ser avaliado');
+    }
+    if (ticket.clientId !== reviewerId && ticket.assignedToId !== reviewerId) {
+      throw new BadRequestException('Você não tem permissão para avaliar este chamado');
+    }
+    if (!ticket.assignedToId) {
+      throw new BadRequestException('Não há um prestador atribuído a este chamado');
+    }
+
+    const revieweeId = ticket.clientId === reviewerId ? ticket.assignedToId : ticket.clientId;
+
+    // Check if already reviewed
+    const existing = await this.prisma.review.findUnique({
+      where: {
+        ticketId_reviewerId: {
+          ticketId,
+          reviewerId
+        }
+      }
+    });
+    if (existing) {
+      throw new BadRequestException('Você já avaliou este chamado');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Criar avaliação
+      const review = await tx.review.create({
+        data: {
+          ticketId,
+          reviewerId,
+          revieweeId,
+          rating: data.rating,
+          comment: data.comment
+        }
+      });
+
+      // 2. Atualizar métricas do usuário avaliado
+      const reviewee = await tx.user.findUnique({
+        where: { id: revieweeId },
+        select: { rating: true, totalReviews: true }
+      });
+
+      if (reviewee) {
+        const newTotal = reviewee.totalReviews + 1;
+        const newRating = (reviewee.rating * reviewee.totalReviews + data.rating) / newTotal;
+
+        await tx.user.update({
+          where: { id: revieweeId },
+          data: {
+            rating: newRating,
+            totalReviews: newTotal
+          }
+        });
+      }
+
+      return review;
+    });
+  }
+
+  async getReceivedReviews(userId: string) {
+    return this.prisma.review.findMany({
+      where: { revieweeId: userId },
+      include: {
+        reviewer: {
+          select: { id: true, name: true, avatarUrl: true, userType: true }
+        },
+        ticket: {
+          select: { id: true, title: true }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async getPendingReviews(userId: string) {
+    const tickets = await this.prisma.ticket.findMany({
+      where: {
+        status: { in: ['resolved', 'closed'] },
+        assignedToId: { not: null },
+        OR: [
+          { clientId: userId },
+          { assignedToId: userId }
+        ]
+      },
+      include: {
+        client: { select: { id: true, name: true, avatarUrl: true, userType: true } },
+        assignedTo: { select: { id: true, name: true, avatarUrl: true, userType: true } },
+        reviews: {
+          where: { reviewerId: userId }
+        }
+      },
+      orderBy: { updatedAt: 'desc' }
+    });
+
+    const pending = tickets
+      .filter(t => t.reviews.length === 0)
+      .map(t => {
+        const otherUser = t.clientId === userId ? t.assignedTo : t.client;
+        return {
+          ticketId: t.id,
+          title: t.title,
+          updatedAt: t.updatedAt,
+          otherUser
+        };
+      });
+
+    return pending;
   }
 
   async report(ticketId: string, userId: string, data: CreateReportDto) {
@@ -369,4 +485,90 @@ export class TicketsService {
       generatedAt: new Date()
     };
   }
+
+  async finalizeTech(ticketId: string, providerId: string, amount: number) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId }
+    });
+
+    if (!ticket) throw new NotFoundException('Chamado não encontrado');
+    if (ticket.assignedToId !== providerId) {
+      throw new BadRequestException('Apenas o prestador atribuído a este chamado pode finalizá-lo');
+    }
+    if (ticket.status !== TicketStatus.in_progress) {
+      throw new BadRequestException('O chamado deve estar em andamento para ser finalizado');
+    }
+
+    return this.prisma.$transaction(async (tx) => {
+      // 1. Buscar a proposta aceita para saber se existe e obter seu id
+      const acceptedProposal = await tx.proposal.findFirst({
+        where: { ticketId, providerId, status: 'accepted' }
+      });
+      const proposalId = acceptedProposal?.id || null;
+
+      // 2. Buscar ou criar o pagamento
+      const payment = await tx.payment.findFirst({
+        where: { ticketId }
+      });
+
+      if (payment) {
+        await tx.payment.update({
+          where: { id: payment.id },
+          data: {
+            amount,
+            status: 'released',
+            proposalId
+          }
+        });
+      } else {
+        await tx.payment.create({
+          data: {
+            ticketId,
+            proposalId,
+            amount,
+            status: 'released'
+          }
+        });
+      }
+
+      // 3. Atualizar status do ticket para resolved e paymentStatus para released
+      await tx.ticket.update({
+        where: { id: ticketId },
+        data: {
+          status: TicketStatus.resolved,
+          paymentStatus: 'released'
+        }
+      });
+
+      // 4. Atualizar o valor estimado na proposta aceita para manter consistência
+      if (acceptedProposal) {
+        await tx.proposal.update({
+          where: { id: acceptedProposal.id },
+          data: {
+            estimatedValue: amount
+          }
+        });
+      }
+
+      // 5. Incrementar o saldo (balance) do prestador na tabela User (puramente visual)
+      await tx.user.update({
+        where: { id: providerId },
+        data: {
+          balance: { increment: amount }
+        }
+      });
+
+      // 6. Enviar notificação ao cliente informando que o técnico finalizou o atendimento
+      this.notifications.create({
+        userId: ticket.clientId,
+        title: 'Atendimento Finalizado',
+        message: `O técnico finalizou o atendimento do chamado "${ticket.title}". O valor de R$ ${amount.toFixed(2)} foi registrado.`,
+        type: 'info',
+        link: `/tickets/${ticketId}`
+      }).catch(err => console.error('Falha ao enviar notificação de finalização do técnico:', err));
+
+      return { success: true };
+    });
+  }
 }
+

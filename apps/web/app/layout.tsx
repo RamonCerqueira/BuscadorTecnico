@@ -1,14 +1,14 @@
 import './globals.css';
-import { Inter } from 'next/font/google';
+import { Outfit } from 'next/font/google';
 import { Providers } from './providers';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 
-const inter = Inter({ subsets: ['latin'] });
+const outfit = Outfit({ subsets: ['latin'] });
 
 export const metadata = {
   title: 'TechFix Marketplace',
-  description: 'Buscador de Técnicos e Empresas com IA',
+  description: 'Buscador de Técnicos, Empresas e Serviços',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
@@ -24,7 +24,7 @@ export const viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" suppressHydrationWarning>
-      <body className={inter.className}>
+      <body className={outfit.className}>
         <Providers>
           <div className="flex flex-col min-h-screen">
             <SiteHeader />

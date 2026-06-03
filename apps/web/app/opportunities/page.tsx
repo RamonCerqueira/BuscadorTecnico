@@ -8,23 +8,12 @@ import { motion } from 'framer-motion';
 import dynamic from 'next/dynamic';
 import { useSessionStore } from '@/lib/store';
 import { Search, MapPin, Briefcase, ArrowUpRight } from 'lucide-react';
+import { Ticket } from '@/types/ticket';
 
 const InteractiveMap = dynamic(() => import('@/components/ui/interactive-map'), {
   ssr: false,
   loading: () => <div className="h-[400px] w-full bg-slate-100 animate-pulse rounded-[2rem]" />
 });
-
-type Ticket = {
-  id: string;
-  title: string;
-  description: string;
-  locationText: string;
-  status: string;
-  createdAt: string;
-  latitude?: number;
-  longitude?: number;
-  client?: { name: string };
-};
 
 export default function MarketplacePage() {
   const { token } = useSessionStore();
@@ -38,10 +27,12 @@ export default function MarketplacePage() {
 
   const tickets = (ticketsQuery.data?.data ?? []).filter(t => {
     const matchesSearch = t.title.toLowerCase().includes(search.toLowerCase()) ||
-      t.description.toLowerCase().includes(search.toLowerCase()) ||
-      t.locationText.toLowerCase().includes(search.toLowerCase());
+      (t.description || '').toLowerCase().includes(search.toLowerCase()) ||
+      (t.locationText || '').toLowerCase().includes(search.toLowerCase());
 
-    const matchesCategory = !selectedCategory || t.title.toLowerCase().includes(selectedCategory.toLowerCase()) || t.description.toLowerCase().includes(selectedCategory.toLowerCase());
+    const matchesCategory = !selectedCategory || 
+      t.title.toLowerCase().includes(selectedCategory.toLowerCase()) || 
+      (t.description || '').toLowerCase().includes(selectedCategory.toLowerCase());
 
     return matchesSearch && matchesCategory;
   });

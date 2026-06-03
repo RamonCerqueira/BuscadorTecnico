@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { CreateProposalDto } from './dto/create-proposal.dto';
+import { CounterOfferDto } from './dto/counter-offer.dto';
 import { ProposalsService } from './proposals.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { RolesGuard } from '../auth/roles.guard';
@@ -61,5 +62,33 @@ export class ProposalsDecisionController {
     @CurrentUser() user: AuthUser
   ) {
     return this.proposalsService.signProposal(proposalId, user.sub, signatureHash);
+  }
+
+  @Post(':proposalId/counter-offer')
+  @Roles('client')
+  counterOffer(
+    @Param('proposalId') proposalId: string,
+    @Body() body: CounterOfferDto,
+    @CurrentUser() user: AuthUser
+  ) {
+    return this.proposalsService.createCounterOffer(proposalId, body.amount, user.sub);
+  }
+
+  @Post(':proposalId/accept-counter-offer')
+  @Roles('technician', 'company')
+  acceptCounterOffer(
+    @Param('proposalId') proposalId: string,
+    @CurrentUser() user: AuthUser
+  ) {
+    return this.proposalsService.acceptCounterOffer(proposalId, user.sub);
+  }
+
+  @Post(':proposalId/reject-counter-offer')
+  @Roles('technician', 'company')
+  rejectCounterOffer(
+    @Param('proposalId') proposalId: string,
+    @CurrentUser() user: AuthUser
+  ) {
+    return this.proposalsService.rejectCounterOffer(proposalId, user.sub);
   }
 }

@@ -2,6 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@ne
 import { TicketStatus } from '@prisma/client';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CompleteTicketDto } from './dto/complete-ticket.dto';
+import { FinalizeTechDto } from './dto/finalize-tech.dto';
 import { CreateReportDto } from './dto/create-report.dto';
 import { TicketsService } from './tickets.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -77,6 +78,16 @@ export class TicketsController {
     return this.ticketsService.complete(id, user.sub, body);
   }
 
+  @Patch(':id/finalize-tech')
+  @Roles('technician', 'company')
+  finalizeTech(
+    @Param('id') id: string,
+    @Body() body: FinalizeTechDto,
+    @CurrentUser() user: AuthUser
+  ) {
+    return this.ticketsService.finalizeTech(id, user.sub, body.amount);
+  }
+
   @Post(':id/report')
   report(
     @Param('id') id: string,
@@ -84,6 +95,28 @@ export class TicketsController {
     @CurrentUser() user: AuthUser
   ) {
     return this.ticketsService.report(id, user.sub, body);
+  }
+
+  @Post(':id/review')
+  @Roles('client', 'technician', 'company')
+  createReview(
+    @Param('id') id: string,
+    @Body() body: CompleteTicketDto,
+    @CurrentUser() user: AuthUser
+  ) {
+    return this.ticketsService.createReview(id, user.sub, body);
+  }
+
+  @Get('reviews/received')
+  @Roles('client', 'technician', 'company')
+  getReceivedReviews(@CurrentUser() user: AuthUser) {
+    return this.ticketsService.getReceivedReviews(user.sub);
+  }
+
+  @Get('reviews/pending')
+  @Roles('client', 'technician', 'company')
+  getPendingReviews(@CurrentUser() user: AuthUser) {
+    return this.ticketsService.getPendingReviews(user.sub);
   }
 
   @Post(':id/tech-report')

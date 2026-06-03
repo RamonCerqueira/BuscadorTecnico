@@ -30,6 +30,8 @@ type TechStats = {
   totalEarned: number;
   platformFee: number;
   netEarnings: number;
+  averageEarned: number;
+  taxSavings: number;
 };
 
 export default function TechnicianDashboardPage() {
@@ -42,8 +44,8 @@ export default function TechnicianDashboardPage() {
   });
 
   const ticketsQuery = useQuery({
-    queryKey: ['my-tickets'],
-    queryFn: () => apiGet<{ data: any[] }>('/tickets'),
+    queryKey: ['technician-dashboard-tickets'],
+    queryFn: () => apiGet<{ data: any[] }>('/tickets/my-jobs'),
     enabled: !!token
   });
 
@@ -82,7 +84,7 @@ export default function TechnicianDashboardPage() {
 
       {/* Grid Financeiro Principal */}
       <section className="grid gap-8 md:grid-cols-2 lg:grid-cols-4 mb-12">
-        {/* Card 1: Faturamento Bruto */}
+        {/* Card 1: Faturamento Total */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -96,11 +98,11 @@ export default function TechnicianDashboardPage() {
           </div>
           <div className="mt-6">
             <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.totalEarned || 0).toFixed(2)}</p>
-            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Comissão de 15% inclusa</p>
+            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">100% repassado diretamente para você</p>
           </div>
         </motion.div>
 
-        {/* Card 2: Saldo Disponível */}
+        {/* Card 2: Serviços Concluídos */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -108,23 +110,18 @@ export default function TechnicianDashboardPage() {
           className="glass-card bg-white dark:bg-[#111] p-8 flex flex-col justify-between border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Saldo Disponível</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Serviços Concluídos</span>
             <div className="h-8 w-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center">
-              <DollarSign size={16} />
+              <CheckCircle2 size={16} />
             </div>
           </div>
           <div className="mt-6">
-            <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.balance || 0).toFixed(2)}</p>
-            <button 
-              onClick={() => alert('Solicitação de saque de BRL enviada! Processando Pix em até 24h úteis.')}
-              className="mt-4 text-xs font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 hover:gap-2 transition-all outline-none"
-            >
-              Solicitar Saque <ArrowUpRight size={14} />
-            </button>
+            <p className="text-4xl font-black text-slate-900 dark:text-white">{stats?.totalJobs || 0}</p>
+            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Produtividade na plataforma</p>
           </div>
         </motion.div>
 
-        {/* Card 3: Saldo Protegido (Escrow) */}
+        {/* Card 3: Ticket Médio */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -132,18 +129,18 @@ export default function TechnicianDashboardPage() {
           className="glass-card bg-white dark:bg-[#111] p-8 flex flex-col justify-between border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Retido em Escrow</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Ticket Médio</span>
             <div className="h-8 w-8 rounded-lg bg-amber-500/10 text-amber-500 flex items-center justify-center">
-              <Clock size={16} />
+              <DollarSign size={16} />
             </div>
           </div>
           <div className="mt-6">
-            <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.escrowBalance || 0).toFixed(2)}</p>
-            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Liberado após chamado resolvido</p>
+            <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.averageEarned || 0).toFixed(2)}</p>
+            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Média por atendimento</p>
           </div>
         </motion.div>
 
-        {/* Card 4: Lucro Líquido */}
+        {/* Card 4: Economia em Taxas */}
         <motion.div 
           initial={{ opacity: 0, y: 15 }} 
           animate={{ opacity: 1, y: 0 }}
@@ -151,14 +148,14 @@ export default function TechnicianDashboardPage() {
           className="glass-card bg-white dark:bg-[#111] p-8 flex flex-col justify-between border border-slate-100 dark:border-white/5 shadow-2xl relative overflow-hidden group"
         >
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Rendimento Líquido</span>
+            <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Economia em Taxas</span>
             <div className="h-8 w-8 rounded-lg bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-              <Wallet size={16} />
+              <Zap size={16} />
             </div>
           </div>
           <div className="mt-6">
-            <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.netEarnings || 0).toFixed(2)}</p>
-            <p className="text-[10px] text-slate-500 font-bold mt-2 uppercase">Líquido TechFix: R$ {Number(stats?.platformFee || 0).toFixed(2)} tarifa</p>
+            <p className="text-4xl font-black text-slate-900 dark:text-white">R$ {Number(stats?.taxSavings || 0).toFixed(2)}</p>
+            <p className="text-[10px] text-emerald-500 font-bold mt-2 uppercase">Tarifa TechFix: R$ 0.00 (Zero Taxas)</p>
           </div>
         </motion.div>
       </section>

@@ -10,12 +10,14 @@ datasource db {
 
 model User {
   id                     String             @id @default(cuid())
+  slug                   String?            @unique
   name                   String
   email                  String             @unique
   passwordHash           String
   userType               UserType
   phone                  String?
   avatarUrl              String?
+  coverUrl               String?
   bio                    String?
   address                String?
   city                   String?
@@ -23,7 +25,6 @@ model User {
   zipCode                String?
   latitude               Float?
   longitude              Float?
-  document               String?
   specialties            String[]
   certificates           String[]
   subscriptionActive     Boolean            @default(false)
@@ -45,18 +46,40 @@ model User {
   signupUserAgent        String?
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
+  document               String?
   materialRefunds        MaterialRefund[]   @relation("ProviderRefunds")
   notifications          Notification[]
   portfolio              PortfolioItem[]
   proposals              Proposal[]
   pushSubscriptions      PushSubscription[]
   refreshTokens          RefreshToken[]
-  clientReviews          Review[]           @relation("ClientReviews")
-  providerReviews        Review[]           @relation("ProviderReviews")
+  reviewsGiven           Review[]           @relation("ReviewsGiven")
+  reviewsReceived        Review[]           @relation("ReviewsReceived")
   assigned               Ticket[]           @relation("AssignedTickets")
   clientTickets          Ticket[]           @relation("ClientTickets")
   messages               TicketMessage[]    @relation("SenderMessages")
   reports                TicketReport[]     @relation("UserReports")
+  services               ServiceMenu[]
+  faqs                   FaqItem[]
+}
+
+model ServiceMenu {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  price       Decimal?
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model FaqItem {
+  id          String   @id @default(cuid())
+  userId      String
+  question    String
+  answer      String
+  createdAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
 }
 
 model Ticket {
@@ -79,7 +102,7 @@ model Ticket {
   materialRefunds MaterialRefund[]
   payments        Payment[]
   proposals       Proposal[]
-  review          Review?
+  reviews         Review[]
   assignedTo      User?            @relation("AssignedTickets", fields: [assignedToId], references: [id])
   client          User             @relation("ClientTickets", fields: [clientId], references: [id])
   messages        TicketMessage[]
@@ -121,6 +144,8 @@ model Proposal {
   status         ProposalStatus @default(pending)
   signedAt       DateTime?
   signatureHash  String?
+  counterOfferValue  Decimal?
+  counterOfferStatus String?        @default("none")
   createdAt      DateTime       @default(now())
   provider       User           @relation(fields: [providerId], references: [id])
   ticket         Ticket         @relation(fields: [ticketId], references: [id])
@@ -139,15 +164,17 @@ model TicketMessage {
 
 model Review {
   id         String   @id @default(cuid())
-  ticketId   String   @unique
-  clientId   String
-  providerId String
+  ticketId   String
+  reviewerId String
+  revieweeId String
   rating     Int
   comment    String?
   createdAt  DateTime @default(now())
-  client     User     @relation("ClientReviews", fields: [clientId], references: [id])
-  provider   User     @relation("ProviderReviews", fields: [providerId], references: [id])
+  reviewer   User     @relation("ReviewsGiven", fields: [reviewerId], references: [id])
+  reviewee   User     @relation("ReviewsReceived", fields: [revieweeId], references: [id])
   ticket     Ticket   @relation(fields: [ticketId], references: [id])
+
+  @@unique([ticketId, reviewerId])
 }
 
 model RefreshToken {
