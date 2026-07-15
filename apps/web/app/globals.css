@@ -45,6 +45,25 @@ body {
          dark:border-white/10 dark:bg-black/40 dark:text-white dark:placeholder:text-slate-500 dark:focus:border-blue-500;
 }
 
+.floating-input {
+  @apply w-full rounded-2xl border border-slate-200/80 bg-white/80 pt-6 pb-2.5 px-5 text-slate-900 font-medium placeholder:text-transparent
+         focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 transition-all duration-300
+         dark:border-white/10 dark:bg-black/40 dark:text-white dark:focus:border-blue-500;
+}
+
+.floating-label {
+  @apply absolute left-5 pointer-events-none transition-all duration-300;
+}
+
+.peer:placeholder-shown ~ .floating-label {
+  @apply top-5 text-sm font-medium tracking-normal text-slate-400 dark:text-slate-500;
+}
+
+.peer:focus ~ .floating-label,
+.peer:not(:placeholder-shown) ~ .floating-label {
+  @apply top-2.5 text-[9px] font-black tracking-widest text-blue-500 dark:text-blue-400;
+}
+
 .premium-gradient-text {
   @apply bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 bg-clip-text text-transparent dark:from-blue-400 dark:via-indigo-400 dark:to-cyan-400;
 }
@@ -56,4 +75,34 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Glow Card Cursor Tracking Styles */
+.glow-card-container {
+  position: relative;
+}
+
+.glow-card-border {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.5px;
+  background: radial-gradient(
+    140px circle at var(--mouse-x, 0px) var(--mouse-y, 0px),
+    rgba(59, 130, 246, 0.4),
+    transparent 80%
+  );
+  -webkit-mask: 
+    linear-gradient(#fff 0 0) content-box, 
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.glow-card-container:hover .glow-card-border {
+  opacity: 1;
+}
+
 
