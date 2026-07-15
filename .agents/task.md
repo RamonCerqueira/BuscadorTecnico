@@ -1,0 +1,11 @@
+- [x] Create custom input component: `apps/web/app/register/components/FloatingInput.tsx`
+- [x] Create progress stepper component: `apps/web/app/register/components/StepIndicator.tsx`
+- [x] Create user profile type selector cards: `apps/web/app/register/components/RoleSelector.tsx`
+- [x] Create branding and dashboard preview widgets: `apps/web/app/register/components/BrandingPanel.tsx`
+- [x] Create specialties tagging interface: `apps/web/app/register/components/TagSelector.tsx`
+- [x] Create Step 1 form component: `apps/web/app/register/components/Step1Form.tsx`
+- [x] Create Step 2 client terms component: `apps/web/app/register/components/Step2ClientForm.tsx`
+- [x] Create Step 2 technician info component: `apps/web/app/register/components/Step2TechForm.tsx`
+- [x] Create Step 3 credentials upload component: `apps/web/app/register/components/Step3TechForm.tsx`
+- [x] Refactor the main orchestration file: `apps/web/app/register/page.tsx`
+- [x] Verify build and local dev functionality

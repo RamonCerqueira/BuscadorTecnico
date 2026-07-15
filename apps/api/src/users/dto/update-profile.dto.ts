@@ -1,4 +1,4 @@
-import { IsOptional, IsString, IsNumber, IsArray, Matches } from 'class-validator';
+import { IsOptional, IsString, IsNumber, IsArray, Matches, IsBoolean } from 'class-validator';
 
 export class UpdateProfileDto {
   @IsOptional()
@@ -59,4 +59,40 @@ export class UpdateProfileDto {
   @IsArray()
   @IsString({ each: true })
   certificates?: string[];
+
+  @IsOptional()
+  @IsString()
+  operatingHours?: string;
+
+  @IsOptional()
+  @IsString()
+  responseTime?: string;
+
+  @IsOptional()
+  @IsString()
+  coverageArea?: string;
+
+  @IsOptional()
+  @IsString()
+  paymentMethods?: string;
+
+  @IsOptional()
+  @IsString()
+  contractWarranty?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  insuranceActive?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  nr10Certified?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  nr35Certified?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  emitsNFe?: boolean;
 }

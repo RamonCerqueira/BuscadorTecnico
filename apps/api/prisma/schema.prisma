@@ -47,6 +47,15 @@ model User {
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
   document               String?
+  operatingHours         String?
+  responseTime           String?
+  coverageArea           String?
+  paymentMethods         String?
+  contractWarranty       String?
+  insuranceActive        Boolean            @default(false)
+  nr10Certified          Boolean            @default(false)
+  nr35Certified          Boolean            @default(false)
+  emitsNFe               Boolean            @default(false)
   materialRefunds        MaterialRefund[]   @relation("ProviderRefunds")
   notifications          Notification[]
   portfolio              PortfolioItem[]

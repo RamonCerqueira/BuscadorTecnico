@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState, useEffect } from 'react';
-import { ChevronUp, ChevronDown } from 'lucide-react';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface CategoryScrollProps {
   categories: string[];
@@ -11,15 +11,14 @@ interface CategoryScrollProps {
 
 export function CategoryScroll({ categories, selectedCategory, onSelect }: CategoryScrollProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [canScrollUp, setCanScrollUp] = useState(false);
-  const [canScrollDown, setCanScrollDown] = useState(false);
-  const scrollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
 
   const checkScroll = () => {
     if (scrollRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = scrollRef.current;
-      setCanScrollUp(scrollTop > 0);
-      setCanScrollDown(scrollTop < scrollHeight - clientHeight - 1);
+      const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+      setCanScrollLeft(scrollLeft > 2);
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 2);
     }
   };
 
@@ -29,51 +28,43 @@ export function CategoryScroll({ categories, selectedCategory, onSelect }: Categ
     return () => window.removeEventListener('resize', checkScroll);
   }, [categories]);
 
-  const startScrolling = (direction: 'up' | 'down') => {
-    if (scrollIntervalRef.current) clearInterval(scrollIntervalRef.current);
-    
-    scrollIntervalRef.current = setInterval(() => {
-      if (scrollRef.current) {
-        scrollRef.current.scrollBy({
-          top: direction === 'up' ? -5 : 5,
-          behavior: 'auto'
-        });
-      }
-    }, 16); // ~60fps
-  };
-
-  const stopScrolling = () => {
-    if (scrollIntervalRef.current) {
-      clearInterval(scrollIntervalRef.current);
-      scrollIntervalRef.current = null;
+  const scroll = (direction: 'left' | 'right') => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -200 : 200,
+        behavior: 'smooth',
+      });
+      // Small timeout to wait for animation
+      setTimeout(checkScroll, 300);
     }
   };
 
   return (
-    <div className="relative flex flex-col h-[400px] w-full rounded-2xl bg-white dark:bg-[#0a0a0a] overflow-hidden shadow-lg">
-      <div className="p-4 border-b border-slate-200 dark:border-white/10 font-black tracking-widest uppercase text-xs text-slate-500">
-        Categorias
-      </div>
-
-      {canScrollUp && (
-        <div 
-          className="absolute top-[50px] left-0 right-0 h-10 bg-gradient-to-b from-white dark:from-[#0a0a0a] to-transparent z-10 flex items-start justify-center pt-1 cursor-pointer"
-          onMouseEnter={() => startScrolling('up')}
-          onMouseLeave={stopScrolling}
+    <div className="relative w-full flex items-center border-b border-zinc-200/80 dark:border-zinc-800/60 pb-3 group">
+      {/* Scroll Left indicator button */}
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 z-10 p-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md text-zinc-650 dark:text-zinc-400 hover:text-indigo-500 transition-colors"
         >
-          <ChevronUp size={20} className="text-blue-500 animate-bounce" />
-        </div>
+          <ChevronLeft size={14} />
+        </button>
       )}
 
-      <div 
+      {/* Categories track */}
+      <div
         ref={scrollRef}
         onScroll={checkScroll}
-        className="flex-1 overflow-y-scroll hide-scrollbar flex flex-col p-2 space-y-1 relative z-0"
+        className="flex-1 flex overflow-x-auto gap-2 scrollbar-hide py-1 px-8 relative z-0"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         <button
           onClick={() => onSelect(null)}
-          className={`px-4 py-3 text-left rounded-xl text-sm font-bold transition-all ${!selectedCategory ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+          className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+            !selectedCategory
+              ? 'bg-zinc-950 dark:bg-zinc-100 border-zinc-950 dark:border-zinc-100 text-white dark:text-zinc-950 shadow-sm'
+              : 'border-zinc-200 dark:border-zinc-800 text-zinc-550 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+          }`}
         >
           Todas as Categorias
         </button>
@@ -82,28 +73,36 @@ export function CategoryScroll({ categories, selectedCategory, onSelect }: Categ
           <button
             key={cat}
             onClick={() => onSelect(cat)}
-            className={`px-4 py-3 text-left rounded-xl text-sm font-bold transition-all ${selectedCategory === cat ? 'bg-blue-600 text-white shadow-md' : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'}`}
+            className={`px-4 py-2 rounded-full text-xs font-semibold whitespace-nowrap transition-all shrink-0 border ${
+              selectedCategory === cat
+                ? 'bg-zinc-950 dark:bg-zinc-100 border-zinc-950 dark:border-zinc-100 text-white dark:text-zinc-950 shadow-sm'
+                : 'border-zinc-200 dark:border-zinc-800 text-zinc-550 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-900'
+            }`}
           >
             {cat}
           </button>
         ))}
       </div>
 
-      {canScrollDown && (
-        <div 
-          className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white dark:from-[#0a0a0a] to-transparent z-10 flex items-end justify-center pb-1 cursor-pointer"
-          onMouseEnter={() => startScrolling('down')}
-          onMouseLeave={stopScrolling}
+      {/* Scroll Right indicator button */}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 z-10 p-1.5 rounded-full bg-white dark:bg-zinc-900 border border-zinc-200 dark:border-zinc-800 shadow-md text-zinc-650 dark:text-zinc-400 hover:text-indigo-500 transition-colors"
         >
-          <ChevronDown size={20} className="text-blue-500 animate-bounce" />
-        </div>
+          <ChevronRight size={14} />
+        </button>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
-        .hide-scrollbar::-webkit-scrollbar {
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
+        .scrollbar-hide::-webkit-scrollbar {
           display: none;
         }
-      `}} />
+      `,
+        }}
+      />
     </div>
   );
 }

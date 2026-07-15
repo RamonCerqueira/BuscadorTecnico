@@ -29,4 +29,8 @@ export class CreateTicketDto {
   @IsString()
   @IsOptional()
   aiInsights?: string;
+
+  @IsString()
+  @IsOptional()
+  assignedToId?: string;
 }

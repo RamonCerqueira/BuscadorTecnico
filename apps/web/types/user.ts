@@ -27,6 +27,15 @@ export type UserProfile = {
   kycDetails?: string;
   services?: any[];
   faqs?: any[];
+  operatingHours?: string;
+  responseTime?: string;
+  coverageArea?: string;
+  paymentMethods?: string;
+  contractWarranty?: string;
+  insuranceActive?: boolean;
+  nr10Certified?: boolean;
+  nr35Certified?: boolean;
+  emitsNFe?: boolean;
 };
 
 export type Professional = {
@@ -41,4 +50,14 @@ export type Professional = {
   bio?: string;
   kycStatus?: string;
   livenessVerified?: boolean;
+  userType?: 'technician' | 'company';
+  operatingHours?: string;
+  responseTime?: string;
+  coverageArea?: string;
+  paymentMethods?: string;
+  contractWarranty?: string;
+  insuranceActive?: boolean;
+  nr10Certified?: boolean;
+  nr35Certified?: boolean;
+  emitsNFe?: boolean;
 };

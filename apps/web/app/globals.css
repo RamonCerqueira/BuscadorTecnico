@@ -105,4 +105,16 @@ body {
   opacity: 1;
 }
 
+/* Fix browser dark-mode select option bugs (white-on-white text) */
+select option {
+  background-color: #ffffff;
+  color: #18181b;
+}
+
+.dark select option {
+  background-color: #0c0c0e;
+  color: #f4f4f5;
+}
+
+
 

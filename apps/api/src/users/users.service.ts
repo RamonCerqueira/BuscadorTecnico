@@ -46,6 +46,16 @@ export class UsersService {
         // LGPD
         acceptedTermsAt: true,
         createdAt: true,
+        // Novas Informacoes Operacionais e Compliance
+        operatingHours: true,
+        responseTime: true,
+        coverageArea: true,
+        paymentMethods: true,
+        contractWarranty: true,
+        insuranceActive: true,
+        nr10Certified: true,
+        nr35Certified: true,
+        emitsNFe: true,
       },
     });
 
@@ -78,6 +88,16 @@ export class UsersService {
         kycStatus: true,
         livenessVerified: true,
         createdAt: true,
+        // Novas Informacoes Operacionais e Compliance
+        operatingHours: true,
+        responseTime: true,
+        coverageArea: true,
+        paymentMethods: true,
+        contractWarranty: true,
+        insuranceActive: true,
+        nr10Certified: true,
+        nr35Certified: true,
+        emitsNFe: true,
         // Upgrade de Vendas
         services: true,
         faqs: true,
@@ -162,6 +182,7 @@ export class UsersService {
       select: {
         id: true,
         name: true,
+        userType: true,
         avatarUrl: true,
         specialties: true,
         rating: true,
@@ -198,7 +219,7 @@ export class UsersService {
   async findNearbyTechnicians(lat: number, lng: number, radiusKm: number = 20) {
     // Usamos queryRaw para cálculo matemático de distância (Haversine)
     const technicians = await this.prisma.$queryRaw<any[]>`
-      SELECT id, name, "avatarUrl", specialties, rating, "totalReviews", city, state, "kycStatus", "livenessVerified",
+      SELECT id, name, "userType", "avatarUrl", specialties, rating, "totalReviews", city, state, "kycStatus", "livenessVerified",
              (6371 * acos(cos(radians(${lat})) * cos(radians(latitude)) * cos(radians(longitude) - radians(${lng})) + sin(radians(${lat})) * sin(radians(latitude)))) AS distance
       FROM "User"
       WHERE ("userType" = 'technician' OR "userType" = 'company')

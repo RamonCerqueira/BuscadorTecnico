@@ -31,32 +31,47 @@ export class TicketsService {
         mediaUrls: data.mediaUrls || [],
         aiInsights,
         clientId: data.clientId,
-        status: TicketStatus.open
+        status: TicketStatus.open,
+        assignedToId: data.assignedToId || null,
       }
     });
 
-    // 4.1 — Match automático técnico-chamado com IA
-    try {
-      const professionals = await this.prisma.user.findMany({
-        where: { userType: { in: ['technician', 'company'] } },
-        select: { id: true, name: true, specialties: true, bio: true }
-      });
-
-      const matchResult = await this.aiService.matchTechnicians(data.description, professionals);
-
-      if (matchResult && matchResult.matchedIds.length > 0) {
-        for (const matchedId of matchResult.matchedIds) {
-          await this.notifications.create({
-            userId: matchedId,
-            title: '🎯 Oportunidade por IA',
-            message: `Você foi selecionado por nossa inteligência artificial como altamente compatível para o chamado: "${data.title}"!`,
-            type: 'proposal',
-            link: `/tickets/${ticket.id}`
-          });
-        }
+    if (data.assignedToId) {
+      try {
+        await this.notifications.create({
+          userId: data.assignedToId,
+          title: '🎯 Contratação Direta!',
+          message: `Um cliente selecionou e contratou você diretamente para o chamado: "${data.title}"! Acesse para formalizar sua proposta.`,
+          type: 'proposal',
+          link: `/tickets/${ticket.id}`
+        });
+      } catch (e) {
+        console.error('Erro ao enviar notificação de contratação direta:', e);
       }
-    } catch (e) {
-      console.error('Erro ao rodar match automático técnico-chamado:', e);
+    } else {
+      // 4.1 — Match automático técnico-chamado com IA (apenas se for chamado geral)
+      try {
+        const professionals = await this.prisma.user.findMany({
+          where: { userType: { in: ['technician', 'company'] } },
+          select: { id: true, name: true, specialties: true, bio: true }
+        });
+
+        const matchResult = await this.aiService.matchTechnicians(data.description, professionals);
+
+        if (matchResult && matchResult.matchedIds.length > 0) {
+          for (const matchedId of matchResult.matchedIds) {
+            await this.notifications.create({
+              userId: matchedId,
+              title: '🎯 Oportunidade por IA',
+              message: `Você foi selecionado por nossa inteligência artificial como altamente compatível para o chamado: "${data.title}"!`,
+              type: 'proposal',
+              link: `/tickets/${ticket.id}`
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Erro ao rodar match automático técnico-chamado:', e);
+      }
     }
 
     return ticket;

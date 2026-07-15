@@ -51,7 +51,8 @@ function NewTicketForm() {
         locationText,
         category: finalCategory,
         mediaUrls,
-        aiInsights
+        aiInsights,
+        assignedToId: searchParams.get('assignedToId') || undefined
       });
     },
     onSuccess: () => {
@@ -167,6 +168,7 @@ function NewTicketForm() {
   };
 
   if (isSuccess) {
+    const isDirectHire = !!searchParams.get('assignedToId');
     return (
       <div className="flex min-h-screen items-center justify-center bg-white dark:bg-[#0a0a0a] p-4">
         <motion.div 
@@ -182,9 +184,13 @@ function NewTicketForm() {
           >
             <CheckCircle2 size={48} />
           </motion.div>
-          <h2 className="text-3xl font-black">Chamado Criado!</h2>
+          <h2 className="text-3xl font-black">
+            {isDirectHire ? 'Pedido Enviado!' : 'Chamado Criado!'}
+          </h2>
           <p className="text-slate-500 font-medium text-lg leading-relaxed">
-            Seu pedido foi disparado para os melhores profissionais da região. Fique de olho nas propostas!
+            {isDirectHire 
+              ? 'Seu chamado foi enviado diretamente ao profissional escolhido. Você será notificado assim que receber o retorno!' 
+              : 'Seu pedido foi disparado para os melhores profissionais da região. Fique de olho nas propostas!'}
           </p>
           <div className="pt-4">
             <div className="h-1.5 w-32 bg-slate-100 dark:bg-white/5 rounded-full mx-auto overflow-hidden">

@@ -2,56 +2,107 @@
 
 import Link from 'next/link';
 import { useSessionStore } from '@/lib/store';
-import { Bell, User, LogOut, LayoutDashboard, Sun, Moon, Menu, X } from 'lucide-react';
+import { Bell, User, LogOut, LayoutDashboard, Sun, Moon, Menu, X, Server } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { apiGet } from '@/lib/api/client';
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/components/ui/theme-provider';
 
+type Notification = {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+};
+
 export function SiteHeader() {
-  const { token, clearSession, userType } = useSessionStore();
+  const { token, clearSession } = useSessionStore();
   const [showNotifications, setShowNotifications] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const { resolvedTheme, setTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
-  const { data: notifications } = useQuery({
+  const { data: notifications } = useQuery<Notification[]>({
     queryKey: ['notifications'],
-    queryFn: () => apiGet<any[]>('/notifications'),
+    queryFn: () => apiGet<Notification[]>('/notifications'),
     enabled: !!token,
-    refetchInterval: 30000 // Refresh every 30s
+    refetchInterval: 30000, // Refresh every 30s
   });
 
-  const unreadCount = notifications?.filter(n => !n.read).length || 0;
+  const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-100 dark:border-white/5 bg-white/80 dark:bg-black/60 backdrop-blur-xl transition-colors duration-300">
-      <div className="mx-auto flex h-20 w-full max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link href="/" className="group flex items-center gap-2 font-black text-2xl tracking-tighter text-slate-900 dark:text-white transition-all">
-          <div className="h-9 w-9 rounded-xl bg-blue-600 flex items-center justify-center text-xs text-white shadow-xl shadow-blue-600/20 group-hover:rotate-6 transition-transform">
-            TF
+    <header className="sticky top-0 z-50 border-b border-zinc-200/80 dark:border-zinc-800/40 bg-white/70 dark:bg-zinc-950/70 backdrop-blur-xl transition-all duration-300">
+      <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-6">
+        {/* Sleek Geometric Layered Logo */}
+        <Link
+          href="/"
+          className="group flex items-center gap-3 font-extrabold text-lg tracking-tight text-zinc-900 dark:text-zinc-50 transition-all duration-300"
+        >
+          <div className="h-8 w-8 rounded-xl bg-zinc-900 dark:bg-zinc-100 flex items-center justify-center shadow-md shadow-black/10 group-hover:scale-105 transition-transform duration-300">
+            <svg
+              className="h-4.5 w-4.5 text-white dark:text-black"
+              viewBox="0 0 24 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M12 2L2 7L12 12L22 7L12 2Z"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 17L12 22L22 17"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M2 12L12 17L22 12"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </div>
-          <span>Tech<span className="text-blue-600">Fix</span></span>
+          <span className="font-bold">
+            Tech
+            <span className="bg-gradient-to-r from-indigo-500 to-violet-500 bg-clip-text text-transparent">
+              Fix
+            </span>
+          </span>
         </Link>
 
         {/* Desktop Nav */}
         <nav className="hidden lg:flex items-center gap-8">
-          <div className="flex items-center gap-8 mr-4">
-            <Link href="/companies" className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/40 transition hover:text-blue-600 dark:hover:text-white">
+          <div className="flex items-center gap-6">
+            <Link
+              href="/companies"
+              className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
               Profissionais
             </Link>
-            <Link href="/opportunities" className="text-xs font-black uppercase tracking-widest text-slate-500 dark:text-white/40 transition hover:text-blue-600 dark:hover:text-white">
+            <Link
+              href="/opportunities"
+              className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100"
+            >
               Oportunidades
             </Link>
           </div>
+
+          <div className="h-4 w-px bg-zinc-200 dark:bg-zinc-800/80 mx-2" />
 
           {token ? (
             <div className="flex items-center gap-6">
               {/* Dark Mode Toggle */}
               <button
                 onClick={() => setTheme(isDark ? 'light' : 'dark')}
-                className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+                className="p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-all duration-200"
                 title={isDark ? 'Modo Claro' : 'Modo Escuro'}
               >
                 <AnimatePresence mode="wait" initial={false}>
@@ -62,20 +113,20 @@ export function SiteHeader() {
                     exit={{ rotate: 90, opacity: 0 }}
                     transition={{ duration: 0.2 }}
                   >
-                    {isDark ? <Sun size={18} /> : <Moon size={18} />}
+                    {isDark ? <Sun size={16} /> : <Moon size={16} />}
                   </motion.div>
                 </AnimatePresence>
               </button>
 
               {/* Notification Bell */}
               <div className="relative">
-                <button 
+                <button
                   onClick={() => setShowNotifications(!showNotifications)}
-                  className="relative p-2 text-slate-500 hover:text-blue-600 transition-colors"
+                  className="relative p-2 rounded-xl text-zinc-500 hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-all duration-200"
                 >
-                  <Bell size={20} />
+                  <Bell size={18} />
                   {unreadCount > 0 && (
-                    <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[8px] font-black text-white ring-2 ring-white dark:ring-black">
+                    <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold text-white ring-2 ring-white dark:ring-zinc-950">
                       {unreadCount}
                     </span>
                   )}
@@ -83,29 +134,46 @@ export function SiteHeader() {
 
                 <AnimatePresence>
                   {showNotifications && (
-                    <motion.div 
-                      initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                    <motion.div
+                      initial={{ opacity: 0, y: 8, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                      className="absolute right-0 mt-4 w-80 rounded-3xl border border-slate-200 dark:border-white/10 bg-white dark:bg-[#111] p-2 shadow-2xl shadow-blue-600/10"
+                      exit={{ opacity: 0, y: 8, scale: 0.95 }}
+                      className="absolute right-0 mt-3 w-80 rounded-2xl border border-zinc-200 dark:border-zinc-800/80 bg-white dark:bg-zinc-950 p-2 shadow-xl backdrop-blur-xl z-50"
                     >
-                      <div className="p-4 border-b border-slate-100 dark:border-white/5 flex justify-between items-center">
-                        <span className="text-[10px] font-black uppercase tracking-widest">Notificações</span>
-                        <button className="text-[10px] font-black text-blue-600 uppercase">Limpar tudo</button>
+                      <div className="p-3 border-b border-zinc-100 dark:border-zinc-800/60 flex justify-between items-center">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 dark:text-zinc-400">
+                          Notificações
+                        </span>
+                        <button className="text-[10px] font-bold text-indigo-500 hover:text-indigo-400 uppercase">
+                          Limpar tudo
+                        </button>
                       </div>
-                      <div className="max-h-[300px] overflow-y-auto">
+                      <div className="max-h-[260px] overflow-y-auto">
                         {notifications?.length === 0 ? (
-                           <div className="p-8 text-center text-xs text-slate-400 font-bold">Nenhum alerta novo</div>
+                          <div className="p-8 text-center text-xs text-zinc-400 font-bold">
+                            Nenhum alerta novo
+                          </div>
                         ) : (
-                          notifications?.map(n => (
-                            <div key={n.id} className="p-4 hover:bg-slate-50 dark:hover:bg-white/5 rounded-2xl transition-colors">
-                              <h5 className="text-[10px] font-black uppercase text-blue-600 mb-1">{n.title}</h5>
-                              <p className="text-xs text-slate-600 dark:text-slate-400 font-medium line-clamp-2">{n.message}</p>
+                          notifications?.map((n) => (
+                            <div
+                              key={n.id}
+                              className="p-3 hover:bg-zinc-50 dark:hover:bg-zinc-900/40 rounded-xl transition-colors duration-200"
+                            >
+                              <h5 className="text-[10px] font-black uppercase text-indigo-500 dark:text-indigo-400 mb-1">
+                                {n.title}
+                              </h5>
+                              <p className="text-xs text-zinc-600 dark:text-zinc-400 font-medium line-clamp-2">
+                                {n.message}
+                              </p>
                             </div>
                           ))
                         )}
                       </div>
-                      <Link href="/dashboard" className="block text-center p-4 text-[10px] font-black uppercase tracking-widest text-slate-400 hover:text-blue-600 border-t border-slate-100 dark:border-white/5">
+                      <Link
+                        href="/dashboard"
+                        onClick={() => setShowNotifications(false)}
+                        className="block text-center p-3 text-[10px] font-bold uppercase tracking-widest text-zinc-400 hover:text-indigo-500 dark:hover:text-indigo-400 border-t border-zinc-100 dark:border-zinc-800/60"
+                      >
                         Ver painel completo
                       </Link>
                     </motion.div>
@@ -113,44 +181,50 @@ export function SiteHeader() {
                 </AnimatePresence>
               </div>
 
-              <Link 
+              {/* Console Dashboard button */}
+              <Link
                 href="/dashboard"
-                className="flex items-center gap-2 rounded-2xl bg-slate-900 dark:bg-white px-5 py-2.5 text-xs font-black text-white dark:text-black hover:opacity-90 transition-all"
+                className="flex items-center gap-2 rounded-full bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 px-4 py-2 text-xs font-semibold hover:opacity-90 active:scale-98 transition-all duration-200 shadow-sm"
               >
-                <LayoutDashboard size={14} /> Painel
+                <LayoutDashboard size={13} /> Painel
               </Link>
-              
-              <button 
+
+              <button
                 onClick={clearSession}
-                className="p-2 text-slate-400 hover:text-rose-500 transition-colors"
+                className="p-2 rounded-xl text-zinc-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all duration-200"
                 title="Sair"
               >
-                <LogOut size={20} />
+                <LogOut size={18} />
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-4">
-               <Link href="/login" className="text-xs font-black uppercase tracking-widest text-slate-900 dark:text-white px-4 hover:text-blue-600 transition-colors">Entrar</Link>
-               <Link 
-                 href="/register" 
-                 className="rounded-2xl bg-blue-600 px-6 py-3 text-xs font-black uppercase tracking-widest text-white shadow-xl shadow-blue-600/20 hover:bg-blue-500 active:scale-95 transition-all"
-               >
-                 Começar
-               </Link>
+              <Link
+                href="/login"
+                className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 transition-colors duration-200 hover:text-zinc-900 dark:hover:text-zinc-100 px-2"
+              >
+                Entrar
+              </Link>
+              <Link
+                href="/register"
+                className="rounded-full bg-zinc-950 dark:bg-zinc-50 text-white dark:text-zinc-950 px-5 py-2 text-xs font-semibold tracking-wide hover:bg-zinc-800 dark:hover:bg-zinc-200 active:scale-[0.97] transition-all duration-200 shadow-sm"
+              >
+                Começar
+              </Link>
             </div>
           )}
         </nav>
 
         {/* Mobile Nav Toggle */}
-        <div className="flex lg:hidden items-center gap-4">
+        <div className="flex lg:hidden items-center gap-2">
           {token && (
-            <button 
+            <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="relative p-2 text-slate-500 hover:text-blue-600 transition-colors"
+              className="relative p-2 text-zinc-500 dark:text-zinc-400 transition-colors"
             >
-              <Bell size={20} />
+              <Bell size={18} />
               {unreadCount > 0 && (
-                <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-rose-500 text-[8px] font-black text-white ring-2 ring-white dark:ring-black">
+                <span className="absolute top-1.5 right-1.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-rose-500 text-[8px] font-bold text-white ring-2 ring-white dark:ring-zinc-950">
                   {unreadCount}
                 </span>
               )}
@@ -159,16 +233,16 @@ export function SiteHeader() {
 
           <button
             onClick={() => setTheme(isDark ? 'light' : 'dark')}
-            className="p-2 rounded-xl text-slate-500 hover:text-blue-600 hover:bg-slate-100 dark:hover:bg-white/5 transition-all"
+            className="p-2 rounded-xl text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-100 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-all duration-200"
           >
-            {isDark ? <Sun size={18} /> : <Moon size={18} />}
+            {isDark ? <Sun size={16} /> : <Moon size={16} />}
           </button>
 
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            className="p-2 text-slate-900 dark:text-white"
+            className="p-2 rounded-xl text-zinc-800 dark:text-zinc-200 hover:bg-zinc-100 dark:hover:bg-zinc-900/60 transition-all duration-200"
           >
-            {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+            {isMobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
       </div>
@@ -180,58 +254,58 @@ export function SiteHeader() {
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: '100vh' }}
             exit={{ opacity: 0, height: 0 }}
-            className="lg:hidden absolute top-20 left-0 w-full bg-white dark:bg-[#0a0a0a] border-b border-slate-100 dark:border-white/5 overflow-hidden"
+            className="lg:hidden absolute top-16 left-0 w-full bg-white dark:bg-zinc-950 border-b border-zinc-200 dark:border-zinc-800/60 overflow-hidden z-50"
           >
-            <div className="flex flex-col p-6 gap-6 h-full">
-              <Link 
-                href="/companies" 
+            <div className="flex flex-col p-6 gap-6 h-full font-sans">
+              <Link
+                href="/companies"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white"
+                className="text-base font-semibold text-zinc-800 dark:text-zinc-200 hover:text-indigo-500 transition-colors"
               >
                 Profissionais
               </Link>
-              <Link 
-                href="/opportunities" 
+              <Link
+                href="/opportunities"
                 onClick={() => setIsMobileMenuOpen(false)}
-                className="text-lg font-black uppercase tracking-widest text-slate-900 dark:text-white"
+                className="text-base font-semibold text-zinc-800 dark:text-zinc-200 hover:text-indigo-500 transition-colors"
               >
                 Oportunidades
               </Link>
-              
-              <div className="h-px w-full bg-slate-100 dark:bg-white/10 my-2" />
+
+              <div className="h-px w-full bg-zinc-100 dark:bg-zinc-800/80 my-2" />
 
               {token ? (
-                <>
-                  <Link 
+                <div className="flex flex-col gap-4">
+                  <Link
                     href="/dashboard"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center gap-3 text-lg font-black text-slate-900 dark:text-white"
+                    className="flex items-center gap-3 text-base font-semibold text-zinc-800 dark:text-zinc-200 hover:text-indigo-500 transition-colors"
                   >
-                    <LayoutDashboard size={20} /> Painel de Controle
+                    <LayoutDashboard size={18} /> Painel de Controle
                   </Link>
-                  <button 
+                  <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
                       clearSession();
                     }}
-                    className="flex items-center gap-3 text-lg font-black text-rose-500"
+                    className="flex items-center gap-3 text-base font-semibold text-rose-500 hover:text-rose-400 transition-colors text-left"
                   >
-                    <LogOut size={20} /> Sair da Conta
+                    <LogOut size={18} /> Sair da Conta
                   </button>
-                </>
+                </div>
               ) : (
-                <div className="flex flex-col gap-4 mt-4">
-                  <Link 
-                    href="/login" 
+                <div className="flex flex-col gap-4 mt-2">
+                  <Link
+                    href="/login"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center w-full rounded-2xl bg-slate-100 dark:bg-white/5 px-6 py-4 text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white transition-all"
+                    className="flex items-center justify-center w-full rounded-full bg-zinc-100 dark:bg-zinc-900 px-6 py-3.5 text-sm font-semibold text-zinc-800 dark:text-zinc-200 transition-all hover:bg-zinc-200 dark:hover:bg-zinc-800"
                   >
                     Entrar
                   </Link>
-                  <Link 
-                    href="/register" 
+                  <Link
+                    href="/register"
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="flex items-center justify-center w-full rounded-2xl bg-blue-600 px-6 py-4 text-sm font-black uppercase tracking-widest text-white shadow-xl shadow-blue-600/20 active:scale-95 transition-all"
+                    className="flex items-center justify-center w-full rounded-full bg-zinc-950 dark:bg-zinc-50 px-6 py-3.5 text-sm font-semibold text-white dark:text-zinc-950 transition-all hover:opacity-90 active:scale-[0.98] shadow-sm"
                   >
                     Começar
                   </Link>
@@ -244,4 +318,3 @@ export function SiteHeader() {
     </header>
   );
 }
-

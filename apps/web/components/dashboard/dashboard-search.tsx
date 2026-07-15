@@ -18,41 +18,48 @@ export function DashboardSearch({
   handleSearchSubmit,
   setActiveCategory,
   setActiveSearch,
-  quickCategories
+  quickCategories,
 }: DashboardSearchProps) {
   if (userType === 'client') {
     return (
       <div className="space-y-4 pt-2">
         <form onSubmit={handleSearchSubmit} className="relative group w-full">
-          <div className="absolute -inset-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-[2rem] blur opacity-25 group-hover:opacity-35 transition duration-500"></div>
-          <div className="relative flex items-center bg-[#0a0b10] border border-white/10 rounded-[1.8rem] p-2 shadow-2xl">
-            <Search size={22} className="ml-4 text-slate-400 shrink-0" />
-            <input 
-              type="text" 
+          {/* Subtle hover background highlight */}
+          <div className="absolute -inset-1 bg-indigo-500/[0.03] rounded-full blur-md opacity-0 group-hover:opacity-100 transition duration-300" />
+          
+          <div className="relative flex items-center bg-white dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800/80 rounded-full p-1.5 focus-within:border-indigo-500/50 dark:focus-within:border-indigo-500/30 focus-within:ring-1 focus-within:ring-indigo-500/30 transition-all duration-300 shadow-sm">
+            <Search size={18} className="ml-4 text-zinc-400 shrink-0" />
+            <input
+              type="text"
               placeholder="Busque por eletricista, pintor, encanador, climatização..."
-              className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 text-sm md:text-base font-semibold outline-none text-white placeholder:text-slate-500"
+              className="flex-1 bg-transparent border-none focus:ring-0 px-4 py-2.5 text-sm font-semibold outline-none text-zinc-900 dark:text-zinc-50 placeholder:text-zinc-500"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
-            <button type="submit" className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-3.5 rounded-[1.4rem] font-bold transition-all active:scale-95 text-xs md:text-sm uppercase tracking-widest shrink-0 shadow-lg shadow-blue-500/20">
+            <button
+              type="submit"
+              className="bg-zinc-950 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 px-6 py-2.5 rounded-full font-semibold transition-all active:scale-[0.98] text-xs tracking-wide shrink-0 shadow-sm"
+            >
               Buscar
             </button>
           </div>
         </form>
 
-        {/* Sugestões de Categorias rápidas que mudam o filtro em tela */}
+        {/* Suggestion Category chips */}
         <div className="flex flex-wrap gap-2 pt-1 items-center">
-          <span className="text-[9px] font-black uppercase tracking-widest text-slate-500 mr-1.5">Sugestões:</span>
+          <span className="text-[9px] font-bold uppercase tracking-wider text-zinc-500 mr-1.5">
+            Sugestões:
+          </span>
           {quickCategories.map((cat) => (
-            <button 
+            <button
               type="button"
               onClick={() => {
                 setActiveCategory(cat.category);
                 setActiveSearch(null);
                 setSearchQuery('');
               }}
-              key={cat.label} 
-              className="px-4 py-2 rounded-full border border-white/5 bg-white/[0.04] text-[9px] font-black uppercase tracking-widest text-slate-300 hover:bg-white/[0.08] hover:text-white hover:border-white/10 transition-all active:scale-95 text-left"
+              key={cat.label}
+              className="px-3 py-1.5 rounded-full border border-zinc-200 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-900/40 text-[9px] font-bold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 hover:text-zinc-900 dark:hover:text-zinc-200 transition-all active:scale-[0.98]"
             >
               {cat.label}
             </button>
@@ -64,11 +71,17 @@ export function DashboardSearch({
 
   return (
     <div className="flex flex-wrap gap-4 pt-4">
-      <Link href="/opportunities" className="inline-flex items-center gap-2 rounded-2xl bg-blue-600 px-8 py-4 text-xs font-black uppercase tracking-widest text-white hover:bg-blue-500 transition-all active:scale-95 shadow-lg shadow-blue-600/20 shrink-0">
-        <Briefcase size={14} /> Buscar Oportunidades
+      <Link
+        href="/opportunities"
+        className="inline-flex items-center gap-2 rounded-full bg-zinc-950 dark:bg-zinc-50 hover:bg-zinc-800 dark:hover:bg-zinc-200 text-white dark:text-zinc-950 px-6 py-3 text-xs font-semibold tracking-wide active:scale-[0.98] transition-all shadow-sm shrink-0"
+      >
+        <Briefcase size={13} /> Buscar Oportunidades
       </Link>
-      <Link href="/profile" className="inline-flex items-center gap-2 rounded-2xl bg-white/[0.05] border border-white/10 px-8 py-4 text-xs font-black uppercase tracking-widest text-slate-300 hover:bg-white/[0.1] hover:text-white transition-all active:scale-95 shrink-0">
-        <User size={14} /> Editar Perfil
+      <Link
+        href="/profile"
+        className="inline-flex items-center gap-2 rounded-full bg-zinc-100 dark:bg-zinc-900/60 border border-zinc-200 dark:border-zinc-800 hover:bg-zinc-200 dark:hover:bg-zinc-800 text-zinc-700 dark:text-zinc-300 px-6 py-3 text-xs font-semibold tracking-wide active:scale-[0.98] transition-all shadow-sm shrink-0"
+      >
+        <User size={13} /> Editar Perfil
       </Link>
     </div>
   );
