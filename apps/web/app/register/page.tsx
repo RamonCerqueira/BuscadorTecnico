@@ -10,7 +10,7 @@ import { apiPost } from '@/lib/api/client';
 import { useSessionStore } from '@/lib/store';
 
 // Auxiliary Components
-import BrandingPanel from './components/BrandingPanel';
+import BrandingPanel from '@/components/layout/BrandingPanel';
 import StepIndicator from './components/StepIndicator';
 import Step1Form from './components/Step1Form';
 import Step2ClientForm from './components/Step2ClientForm';

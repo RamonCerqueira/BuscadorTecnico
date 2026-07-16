@@ -19,6 +19,8 @@ import { PaymentsModule } from './payments/payments.module';
 import { AiModule } from './ai/ai.module';
 import { PortfolioModule } from './portfolio/portfolio.module';
 import { RefundsModule } from './refunds/refunds.module';
+import { CouponsModule } from './coupons/coupons.module';
+import { SupportModule } from './support/support.module';
 
 @Module({
   imports: [
@@ -61,7 +63,9 @@ import { RefundsModule } from './refunds/refunds.module';
     PaymentsModule,
     AiModule,
     PortfolioModule,
-    RefundsModule
+    RefundsModule,
+    CouponsModule,
+    SupportModule
   ],
   controllers: [AppController],
   providers: [

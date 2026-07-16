@@ -62,6 +62,9 @@ export default function TicketDetailPage() {
   const [chatAttachment, setChatAttachment] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  // Gallery lightbox state
+  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
   const params = useParams();
   const router = useRouter();
   const { userType, token } = useSessionStore();
@@ -376,25 +379,25 @@ export default function TicketDetailPage() {
             <ShieldCheck size={20} />
           </div>
           <div>
-            <h4 className="text-sm font-black text-amber-800">🛡️ Garantia de Proteção TechFix</h4>
-            <p className="text-xs font-semibold text-amber-700 mt-1 leading-relaxed">
+            <h4 className="text-sm font-black text-amber-950 dark:text-amber-300">🛡️ Garantia de Proteção TechFix</h4>
+            <p className="text-xs font-semibold text-amber-800 dark:text-amber-400/90 mt-1 leading-relaxed">
               <strong>Atenção:</strong> O seguro e o sistema de reembolso de peças cobrem <strong>APENAS</strong> serviços finalizados e pagos dentro da plataforma TechFix. Pagamentos por fora violam nossos termos e anulam as garantias.
             </p>
           </div>
         </div>
       )}
 
-      <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 transition-colors mb-8 group">
+      <Link href="/opportunities" className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 hover:text-blue-600 dark:text-zinc-400 dark:hover:text-blue-400 transition-colors mb-8 group">
         <ArrowLeft size={18} className="transition-transform group-hover:-translate-x-1" /> Voltar ao Marketplace
       </Link>
 
-      <div className="grid gap-10 lg:grid-cols-3">
+      <div className="grid gap-8 lg:grid-cols-3">
         {/* Detalhes do Chamado (Esquerda) */}
         <section className="lg:col-span-2 space-y-8">
-          <div className="glass-card bg-white dark:bg-white/5 p-10 border-none dark:border-white/10 shadow-2xl dark:shadow-none">
+          <div className="glass-card bg-white dark:bg-white/5 p-8 md:p-12 border-none dark:border-white/10 shadow-2xl dark:shadow-none">
             <div className="flex flex-wrap items-center gap-3 mb-6">
               {getStatusBadge()}
-              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              <span className="rounded-full bg-slate-100 dark:bg-white/10 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-widest text-slate-500 dark:text-zinc-400">
                 Postado {new Date(ticket.createdAt).toLocaleDateString('pt-BR')}
               </span>
             </div>
@@ -405,44 +408,65 @@ export default function TicketDetailPage() {
             
             <div className="mt-8 flex flex-wrap items-center gap-8 border-y border-slate-100 dark:border-white/10 py-6">
                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                     <MapPin size={20} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Localização</p>
-                    <p className="font-bold text-slate-700">{ticket.locationText}</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Localização</p>
+                    <p className="font-bold text-slate-700 dark:text-zinc-200">{ticket.locationText}</p>
                   </div>
                </div>
                <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <div className="h-10 w-10 rounded-full bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
                     <Zap size={20} />
                   </div>
                   <div>
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Tipo de Serviço</p>
-                    <p className="font-bold text-slate-700">Elétrica Residencial</p>
+                    <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Tipo de Serviço</p>
+                    <p className="font-bold text-slate-700 dark:text-zinc-200">Elétrica Residencial</p>
                   </div>
                </div>
             </div>
 
-            <div className="mt-10">
+            <div className="mt-8">
               <h3 className="text-lg font-bold mb-4">Descrição do Problema</h3>
-              <p className="text-lg text-slate-600 dark:text-slate-400 leading-relaxed whitespace-pre-wrap">
+              <p className="text-lg text-slate-600 dark:text-zinc-300 leading-relaxed whitespace-pre-wrap">
                 {ticket.description}
               </p>
             </div>
             
-            <div className="mt-12 grid grid-cols-2 gap-4">
-               {/* Placeholders para fotos do chamado */}
-               <div className="aspect-video rounded-3xl bg-slate-100 animate-pulse" />
-               <div className="aspect-video rounded-3xl bg-slate-100 animate-pulse" />
-            </div>
+            {/* Galeria de Fotos Anexadas */}
+            {ticket.mediaUrls && ticket.mediaUrls.length > 0 ? (
+              <div className="mt-12">
+                <h3 className="text-sm font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500 mb-4">Fotos Anexadas</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                  {ticket.mediaUrls.map((url: string, index: number) => (
+                    <motion.div
+                      key={index}
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => setSelectedImage(url)}
+                      className="relative aspect-video rounded-2xl overflow-hidden cursor-zoom-in border border-slate-200/60 dark:border-white/5 bg-slate-100 dark:bg-zinc-900 group shadow-sm"
+                    >
+                      <img src={url} alt={`Foto do chamado ${index + 1}`} className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105" />
+                      <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <Eye size={20} className="text-white drop-shadow" />
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-12 p-8 text-center border border-dashed border-slate-200 dark:border-zinc-800 rounded-3xl bg-slate-50/50 dark:bg-zinc-900/10">
+                <p className="text-xs font-semibold text-slate-400 dark:text-zinc-500">Nenhuma foto anexada a este chamado.</p>
+              </div>
+            )}
           </div>
 
           {/* AI Insights Card */}
           <motion.div 
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
-            className="glass-card bg-gradient-to-br from-indigo-900 to-blue-900 p-10 text-white border-none shadow-2xl relative overflow-hidden"
+            className="glass-card bg-gradient-to-br from-indigo-900 to-blue-900 p-8 md:p-12 text-white border-none shadow-2xl relative overflow-hidden"
           >
             <div className="absolute top-0 right-0 p-8 opacity-10">
                <Sparkles size={120} />
@@ -478,7 +502,7 @@ export default function TicketDetailPage() {
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              className="glass-card bg-white dark:bg-white/5 p-10 space-y-6 border-none dark:border-white/10 shadow-2xl dark:shadow-none"
+              className="glass-card bg-white dark:bg-white/5 p-8 md:p-12 space-y-6 border-none dark:border-white/10 shadow-2xl dark:shadow-none"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -1110,26 +1134,32 @@ export default function TicketDetailPage() {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2.5rem] p-10 shadow-2xl"
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-slate-100 dark:border-zinc-800 shadow-2xl z-10"
             >
               <div className="text-center space-y-6">
-                <div className="mx-auto h-20 w-20 rounded-3xl bg-blue-600 text-white flex items-center justify-center shadow-xl shadow-blue-500/30">
-                   <Star size={40} className="fill-current" />
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-amber-500 text-white flex items-center justify-center shadow-lg shadow-amber-500/20">
+                   <Star size={32} className="fill-current" />
                 </div>
-                <h2 className="text-3xl font-black tracking-tight">Avaliar Serviço</h2>
-                <p className="text-slate-500 font-medium">O que você achou do atendimento do técnico?</p>
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Avaliar Serviço</h2>
+                  <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">O que você achou do atendimento do profissional?</p>
+                </div>
                 
-                <div className="flex justify-center gap-2 py-4">
+                <div className="flex justify-center gap-2 py-2">
                   {[1, 2, 3, 4, 5].map((s) => (
                     <button 
                       key={s} 
                       onClick={() => setRating(s)}
-                      className={`h-12 w-12 rounded-xl flex items-center justify-center transition-all ${rating >= s ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20' : 'bg-slate-100 text-slate-400'}`}
+                      className={`h-11 w-11 rounded-xl flex items-center justify-center transition-all ${
+                        rating >= s 
+                          ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/20 scale-105' 
+                          : 'bg-slate-100 dark:bg-zinc-800 text-slate-400 hover:bg-slate-200 dark:hover:bg-zinc-700'
+                      }`}
                     >
-                      <Star size={24} className={rating >= s ? 'fill-current' : ''} />
+                      <Star size={20} className={rating >= s ? 'fill-current' : ''} />
                     </button>
                   ))}
                 </div>
@@ -1141,17 +1171,17 @@ export default function TicketDetailPage() {
                   onChange={(e) => setComment(e.target.value)}
                 />
 
-                <div className="flex flex-col gap-3 pt-4">
+                <div className="flex flex-col gap-3 pt-2">
                   <button 
                     onClick={() => completeMutation.mutate()}
                     disabled={completeMutation.isPending}
-                    className="btn-primary py-5 text-lg shadow-blue-500/20 flex items-center justify-center gap-2"
+                    className="btn-primary py-4 text-sm font-bold shadow-blue-500/20 flex items-center justify-center gap-2"
                   >
-                    {completeMutation.isPending ? 'Finalizando...' : 'Confirmar e Liberar'} <CheckCircle2 size={20} />
+                    {completeMutation.isPending ? 'Finalizando...' : 'Confirmar e Liberar'} <CheckCircle2 size={16} />
                   </button>
                   <button 
                     onClick={() => setIsReviewModalOpen(false)}
-                    className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 py-2"
+                    className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 py-2 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1174,26 +1204,28 @@ export default function TicketDetailPage() {
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
             <motion.div 
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-[2.5rem] p-10 shadow-2xl border border-slate-100 dark:border-white/5"
+              exit={{ opacity: 0, scale: 0.95, y: 20 }}
+              className="relative w-full max-w-md bg-white dark:bg-zinc-900 rounded-3xl p-8 border border-slate-100 dark:border-zinc-800 shadow-2xl z-10"
             >
               <div className="text-center space-y-6">
-                <div className="mx-auto h-20 w-20 rounded-3xl bg-emerald-600 text-white flex items-center justify-center shadow-xl shadow-emerald-500/30">
-                   <CheckCircle2 size={40} />
+                <div className="mx-auto h-16 w-16 rounded-2xl bg-emerald-600 text-white flex items-center justify-center shadow-lg shadow-emerald-500/25">
+                   <CheckCircle2 size={32} />
                 </div>
-                <h2 className="text-3xl font-black tracking-tight text-slate-900 dark:text-white">Finalizar Atendimento</h2>
-                <p className="text-slate-500 dark:text-slate-400 font-medium">
-                  Confirme o valor final recebido por este atendimento. Este valor será contabilizado em seu faturamento no painel financeiro (apenas para visualização).
-                </p>
+                <div className="space-y-1">
+                  <h2 className="text-2xl font-extrabold tracking-tight text-slate-900 dark:text-white">Finalizar Atendimento</h2>
+                  <p className="text-sm font-medium text-slate-500 dark:text-zinc-400">
+                    Confirme o valor final recebido por este atendimento. Este valor será contabilizado em seu faturamento no painel financeiro.
+                  </p>
+                </div>
                 
                 <div className="space-y-2 text-left">
-                   <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Valor Recebido (R$)</label>
+                   <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 dark:text-zinc-500">Valor Recebido (R$)</label>
                    <div className="relative">
-                     <DollarSign size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+                     <DollarSign size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
                      <input 
-                       className="input-field !pl-12 h-14 text-xl font-bold bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-200 dark:border-white/10" 
+                       className="input-field !pl-12 h-13 text-lg font-bold" 
                        placeholder="0,00" 
                        value={finalizeAmount}
                        onChange={(e) => setFinalizeAmount(e.target.value)}
@@ -1201,7 +1233,7 @@ export default function TicketDetailPage() {
                    </div>
                 </div>
 
-                <div className="flex flex-col gap-3 pt-4">
+                <div className="flex flex-col gap-3 pt-2">
                   <button 
                     onClick={() => {
                       if (!finalizeAmount || isNaN(Number(finalizeAmount))) {
@@ -1210,13 +1242,13 @@ export default function TicketDetailPage() {
                       finalizeTechMutation.mutate(Number(finalizeAmount));
                     }}
                     disabled={finalizeTechMutation.isPending}
-                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-black py-5 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 border-none"
+                    className="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl text-xs uppercase tracking-widest transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/20 border-none"
                   >
-                    {finalizeTechMutation.isPending ? 'Finalizando...' : 'Confirmar e Finalizar'} <CheckCircle2 size={20} />
+                    {finalizeTechMutation.isPending ? 'Finalizando...' : 'Confirmar e Finalizar'} <CheckCircle2 size={16} />
                   </button>
                   <button 
                     onClick={() => setIsFinalizeModalOpen(false)}
-                    className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-white py-2"
+                    className="text-xs font-bold uppercase tracking-widest text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 py-2 transition-colors"
                   >
                     Cancelar
                   </button>
@@ -1227,7 +1259,7 @@ export default function TicketDetailPage() {
         )}
       </AnimatePresence>
 
-      {/* Slide-over Chat Modal estilo WhatsApp */}
+      {/* Slide-over Chat Modal estilo Premium */}
       <AnimatePresence>
         {isChatOpen && (
           <>
@@ -1236,79 +1268,80 @@ export default function TicketDetailPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsChatOpen(false)}
-              className="fixed inset-0 z-[100] bg-black/40 backdrop-blur-sm"
+              className="fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm"
             />
             <motion.div
               initial={{ x: '100%', opacity: 0 }}
               animate={{ x: 0, opacity: 1 }}
               exit={{ x: '100%', opacity: 0 }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-md bg-[#efeae2] dark:bg-[#0b141a] shadow-2xl flex flex-col border-l border-white/10"
+              className="fixed right-0 top-0 bottom-0 z-[110] w-full max-w-md bg-slate-50 dark:bg-zinc-950 shadow-2xl flex flex-col border-l border-slate-200 dark:border-zinc-900"
             >
               {/* Header do Chat */}
-              <div className="flex items-center justify-between bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-3 border-b border-black/5 dark:border-white/5 shadow-sm relative z-10">
+              <div className="flex items-center justify-between bg-white dark:bg-zinc-900 px-6 py-4 border-b border-slate-100 dark:border-zinc-800 relative z-10 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-slate-300 overflow-hidden shrink-0">
+                  <div className="h-10 w-10 rounded-xl bg-slate-100 dark:bg-zinc-800 overflow-hidden shrink-0">
                     {ticket.assignedTo?.avatarUrl ? (
                       <img src={ticket.assignedTo.avatarUrl} alt="Avatar" className="h-full w-full object-cover" />
                     ) : (
-                      <div className="h-full w-full flex items-center justify-center bg-blue-600 text-white font-bold text-lg">
+                      <div className="h-full w-full flex items-center justify-center bg-blue-600 text-white font-extrabold text-sm">
                         {ticket.assignedTo?.name?.[0] || 'T'}
                       </div>
                     )}
                   </div>
                   <div>
-                    <h3 className="text-sm font-bold text-[#111b21] dark:text-[#e9edef]">{ticket.assignedTo?.name || 'Técnico Responsável'}</h3>
-                    <p className="text-[11px] text-[#667781] dark:text-[#8696a0]">Online</p>
+                    <h3 className="text-sm font-extrabold text-slate-800 dark:text-zinc-100">{ticket.assignedTo?.name || 'Profissional Parceiro'}</h3>
+                    <p className="text-[9px] text-emerald-500 font-extrabold uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" /> Ativo agora
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={() => setIsChatOpen(false)}
-                  className="p-2 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 rounded-full transition-colors"
+                  className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-lg transition-colors border-none"
                 >
-                  <X size={20} />
+                  <X size={18} />
                 </button>
               </div>
 
-              {/* Área de Mensagens (Estilo WhatsApp) */}
-              <div 
-                className="flex-1 overflow-y-auto p-4 space-y-4 relative"
-                style={{
-                  backgroundImage: 'url("https://user-images.githubusercontent.com/15075759/28719144-86dc0f70-73b1-11e7-911d-60d70fcded21.png")',
-                  backgroundSize: 'contain',
-                  backgroundRepeat: 'repeat',
-                  opacity: 0.8
-                }}
-              >
+              {/* Área de Mensagens */}
+              <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-slate-50 dark:bg-zinc-950">
                 {chatQuery.isLoading ? (
-                  <div className="flex justify-center p-4"><div className="h-6 w-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" /></div>
+                  <div className="flex justify-center p-4">
+                    <div className="h-6 w-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+                  </div>
                 ) : (
                   chatMessages.map((msg: any) => {
-                    const isMe = msg.sender.userType === userType; // Simplificação, na prática usaríamos user.sub
+                    const isMe = msg.sender.userType === userType;
                     return (
                       <div key={msg.id} className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}>
-                        <div className={`max-w-[85%] rounded-2xl px-3 pt-2 pb-3 shadow-sm relative ${
+                        <div className={`max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm relative ${
                           isMe 
-                            ? 'bg-[#d9fdd3] dark:bg-[#005c4b] text-[#111b21] dark:text-[#e9edef] rounded-tr-none' 
-                            : 'bg-white dark:bg-[#202c33] text-[#111b21] dark:text-[#e9edef] rounded-tl-none'
+                            ? 'bg-blue-600 text-white rounded-tr-none' 
+                            : 'bg-white dark:bg-zinc-900 text-slate-800 dark:text-zinc-100 border border-slate-100 dark:border-zinc-800/80 rounded-tl-none'
                         }`}>
                           {!isMe && (
-                            <p className="text-[11px] font-bold text-[#027eb5] dark:text-[#53bdeb] mb-0.5">{msg.sender.name}</p>
+                            <p className="text-[10px] font-bold text-indigo-500 dark:text-indigo-400 mb-0.5">{msg.sender.name}</p>
                           )}
                           
                           {msg.mediaUrls && msg.mediaUrls.length > 0 && (
-                            <div className="mb-2 rounded-xl overflow-hidden mt-1">
-                              <img src={msg.mediaUrls[0]} alt="Anexo" className="max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(msg.mediaUrls[0], '_blank')} />
+                            <div className="mb-2 rounded-xl overflow-hidden mt-1 max-w-full">
+                              <img 
+                                src={msg.mediaUrls[0]} 
+                                alt="Anexo" 
+                                className="max-h-48 object-cover w-full cursor-pointer hover:opacity-90 transition-opacity" 
+                                onClick={() => setSelectedImage(msg.mediaUrls[0])} 
+                              />
                             </div>
                           )}
                           
-                          <p className="text-[13.5px] leading-[19px] whitespace-pre-wrap mr-10">{msg.content}</p>
+                          <p className="text-xs font-medium leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                           
-                          <div className="absolute right-2 bottom-1.5 flex items-center gap-1">
-                            <span className="text-[10px] text-[#667781] dark:text-[#8696a0]/80">
+                          <div className="flex items-center justify-end gap-1 mt-1">
+                            <span className={`text-[8px] font-bold ${isMe ? 'text-blue-200/90' : 'text-slate-400 dark:text-zinc-500'}`}>
                               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                             </span>
-                            {isMe && <CheckCircle2 size={12} className="text-[#53bdeb]" />}
+                            {isMe && <CheckCircle2 size={10} className="text-blue-200" />}
                           </div>
                         </div>
                       </div>
@@ -1319,23 +1352,23 @@ export default function TicketDetailPage() {
               </div>
 
               {/* Input Area */}
-              <div className="bg-[#f0f2f5] dark:bg-[#202c33] px-4 py-3 flex items-end gap-2 relative z-10">
+              <div className="bg-white dark:bg-zinc-900 px-6 py-4 flex items-end gap-3 border-t border-slate-100 dark:border-zinc-800 relative z-10">
                 {chatAttachment ? (
-                  <div className="absolute -top-16 left-4 bg-white dark:bg-slate-800 p-1.5 rounded-xl shadow-lg border border-slate-200 dark:border-slate-700 flex items-center gap-2">
-                    <img src={chatAttachment} alt="Preview" className="h-10 w-10 object-cover rounded-lg" />
-                    <button onClick={() => setChatAttachment('')} className="p-1 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20"><X size={14}/></button>
+                  <div className="absolute -top-16 left-6 bg-white dark:bg-zinc-900 p-2 rounded-2xl shadow-xl border border-slate-100 dark:border-zinc-800 flex items-center gap-2">
+                    <img src={chatAttachment} alt="Preview" className="h-10 w-10 object-cover rounded-xl" />
+                    <button onClick={() => setChatAttachment('')} className="p-1 bg-rose-500/10 text-rose-500 rounded-lg hover:bg-rose-500/20 border-none"><X size={12}/></button>
                   </div>
                 ) : null}
 
-                <div className="shrink-0 pb-1.5">
+                <div className="shrink-0 pb-1">
                   <FileUpload
                     variant="icon"
                     onUpload={(urls) => setChatAttachment(urls[0])}
                     maxFiles={1}
                     label=""
-                    className="p-2 text-[#54656f] dark:text-[#aebac1] hover:bg-black/5 dark:hover:bg-white/5 rounded-full cursor-pointer transition-colors"
+                    className="p-2.5 text-slate-400 hover:text-slate-600 dark:hover:text-zinc-300 hover:bg-slate-50 dark:hover:bg-zinc-800 rounded-xl cursor-pointer transition-colors"
                   >
-                    <ImageIcon size={22} />
+                    <ImageIcon size={20} />
                   </FileUpload>
                 </div>
                 
@@ -1350,20 +1383,51 @@ export default function TicketDetailPage() {
                       }
                     }}
                     placeholder="Digite uma mensagem"
-                    className="w-full bg-white dark:bg-[#2a3942] text-[#111b21] dark:text-[#e9edef] rounded-2xl px-4 py-3 text-sm focus:outline-none resize-none min-h-[44px] max-h-[120px]"
+                    className="w-full bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-zinc-100 border border-slate-100 dark:border-zinc-900 rounded-2xl px-4 py-3 text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none min-h-[42px] max-h-[120px] transition-all"
                     rows={1}
                   />
                   <button
                     type="submit"
                     disabled={(!chatInput.trim() && !chatAttachment) || sendMessageMutation.isPending}
-                    className="shrink-0 h-11 w-11 rounded-full bg-[#00a884] hover:bg-[#008f6f] text-white flex items-center justify-center shadow-sm disabled:opacity-50 transition-colors"
+                    className="shrink-0 h-11 w-11 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center shadow-lg shadow-blue-500/20 disabled:opacity-50 transition-colors border-none"
                   >
-                    {sendMessageMutation.isPending ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={18} className="ml-1" />}
+                    {sendMessageMutation.isPending ? <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> : <Send size={16} className="ml-0.5" />}
                   </button>
                 </form>
               </div>
             </motion.div>
           </>
+        )}
+      </AnimatePresence>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {selectedImage && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setSelectedImage(null)}
+              className="absolute inset-0 bg-black/90 backdrop-blur-sm cursor-zoom-out"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ type: 'spring', damping: 25, stiffness: 250 }}
+              className="relative max-w-5xl max-h-[85vh] z-10 overflow-hidden rounded-2xl shadow-2xl"
+            >
+              <img src={selectedImage} alt="Ampliada" className="max-w-full max-h-[85vh] object-contain rounded-2xl animate-none" />
+              <button
+                type="button"
+                onClick={() => setSelectedImage(null)}
+                className="absolute top-4 right-4 p-2 bg-black/60 hover:bg-black/80 rounded-full text-white transition-colors border-none"
+              >
+                <X size={20} />
+              </button>
+            </motion.div>
+          </div>
         )}
       </AnimatePresence>
     </main>

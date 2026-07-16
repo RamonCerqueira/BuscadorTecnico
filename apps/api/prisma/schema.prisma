@@ -70,6 +70,8 @@ model User {
   reports                TicketReport[]     @relation("UserReports")
   services               ServiceMenu[]
   faqs                   FaqItem[]
+  coupons                Coupon[]
+  supportTickets         SupportTicket[]
 }
 
 model ServiceMenu {
@@ -266,4 +268,33 @@ enum ProposalStatus {
   accepted
   rejected
   withdrawn
+}
+
+model Coupon {
+  id          String   @id @default(cuid())
+  userId      String
+  code        String   @unique
+  type        String
+  value       Decimal
+  minOrder    Decimal?
+  expiryDate  DateTime
+  limitUses   Int      @default(50)
+  usedCount   Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model SupportTicket {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  category    String
+  description String
+  status      String   @default("open")
+  adminReply  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id])
 }
