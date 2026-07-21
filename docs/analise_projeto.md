@@ -78,6 +78,46 @@
 
 ---
 
+## 💰 Precificação e Divisão de Valores por Módulo
+
+Com base na tabela de planos de assinatura fornecida:
+- **Bronze (R$ 150,00):** Até 1 Usuário.
+- **Prata (R$ 250,00):** Até 3 Usuários + Vistoria Digital + Kanban.
+- **Ouro (R$ 350,00):** Até 10 Usuários + NFS-e (Salvador) + Vistoria Digital + Kanban.
+
+Abaixo está a separação do valor do projeto de duas formas:
+1. **Composição do Valor de Assinatura (SaaS)**: Peso de cada módulo na assinatura mensal recorrente.
+2. **Distribuição do Custo de Desenvolvimento (Esforço)**: Percentual de esforço e valor de desenvolvimento sugerido para cada módulo.
+
+### 1. Decomposição da Assinatura Mensal (SaaS)
+Se os módulos fossem contratados individualmente ou para entender o peso deles na composição da assinatura de **R$ 350,00** (Plano Ouro):
+
+| Módulo / Funcionalidade | Descrição | Valor Estimado (Add-on) | % do Plano Máximo |
+| :--- | :--- | :--- | :--- |
+| **Módulo Core (Bronze)** | Auth, Perfis, Chamados, Propostas, Chat, Pagamentos, Admin, IA Básica + 1 Usuário | **R$ 150,00** | 42.8% |
+| **Upgrade de Usuários (até 3)** | Suporte multiusuário básico (plano Prata) | **R$ 20,00** | 5.7% |
+| **Módulo Kanban** | Visualização ágil de chamados e status de atendimento | **R$ 30,00** | 8.6% |
+| **Módulo Vistoria Digital** | Captura de evidências/selfie, checklist e vistoria integrada | **R$ 50,00** | 14.3% |
+| **Upgrade de Usuários (até 10)** | Suporte multiusuário expandido (plano Ouro) | **R$ 40,00** | 11.4% |
+| **Módulo NFS-e (Salvador)** | Emissão automatizada de Notas Fiscais de Serviço | **R$ 60,00** | 17.2% |
+| **TOTAL (Ouro)** | **Todos os recursos inclusos** | **R$ 350,00** | **100%** |
+
+---
+
+### 2. Divisão por Módulos de Desenvolvimento (Esforço / Orçamento)
+Caso precise ratear o custo de desenvolvimento do software para o cliente ou equipe, a distribuição percentual recomendada por esforço é:
+
+| Módulo | Escopo do Módulo | Peso / % do Projeto |
+| :--- | :--- | :--- |
+| **Módulo Core (Base Bronze)** | Estrutura de banco, API NestJS, Web Next.js, Auth, Dashboard, Chat, Notificações, Uploads, Admin e Integração de Pagamento Principal (Stripe/MP) | **50%** |
+| **Módulo Kanban** | Painel visual de arrastar e soltar (Drag & Drop), sincronização de status via websocket no frontend, atualizações no banco de dados. | **10%** |
+| **Módulo Vistoria Digital** | Fluxo de checklist de vistoria, integração com câmera/upload de fotos, IA Gemini Vision para validação de imagens de vistoria e segurança física (Liveness). | **20%** |
+| **Módulo NFS-e (Salvador)** | Integração com FocusNF-e ou eNotas, tratamento de webhooks de pagamento para emissão automática, fila de retry para notas rejeitadas, layout de NFS-e de Salvador. | **15%** |
+| **Módulo Infra & Gestão de Usuários** | Controle de acessos por plano (limits de usuários 1, 3 e 10), convite de membros de equipe, regras de tenancy. | **5%** |
+| **TOTAL** | **Projeto Completo** | **100%** |
+
+---
+
 ## 🛠️ Gaps Técnicos Imediatos (não documentados no todo.md, mas encontrados na análise)
 
 | Problema | Localização | Severidade |
