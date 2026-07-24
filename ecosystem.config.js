@@ -18,7 +18,7 @@ module.exports = {
     },
     {
       name: "buscador-web",
-      script: path.resolve(__dirname, "node_modules/next/dist/bin/next"),
+      script: "node_modules/next/dist/bin/next",
       args: "start -p 5279",
       cwd: path.resolve(__dirname, "apps/web"),
       exec_mode: "fork",
