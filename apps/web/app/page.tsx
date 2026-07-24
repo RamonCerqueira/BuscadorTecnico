@@ -40,13 +40,6 @@ interface CompanyItem {
   avatarUrl?: string;
 }
 
-const MOCK_COMPANIES: CompanyItem[] = [
-  { id: 'mock-1', name: 'ElectroFix Ltda', rating: 4.8, reviews: 124, category: 'Elétrica', image: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?q=80&w=2069&auto=format&fit=crop', isReal: false },
-  { id: 'mock-2', name: 'HidroPrime Soluções', rating: 4.5, reviews: 89, category: 'Hidráulica', image: 'https://images.unsplash.com/photo-1584622650111-993a426fbf0a?q=80&w=2070&auto=format&fit=crop', isReal: false },
-  { id: 'mock-3', name: 'ClimaBom Ar Condicionado', rating: 4.9, reviews: 256, category: 'Climatização', image: 'https://images.unsplash.com/photo-1621905252507-b354bc25edac?q=80&w=2069&auto=format&fit=crop', isReal: false },
-  { id: 'mock-4', name: 'InforTech Serviços', rating: 4.7, reviews: 67, category: 'Informática', image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop', isReal: false },
-];
-
 const MOCK_CHATS = [
   {
     id: 1,
@@ -123,18 +116,9 @@ export default function HomePage() {
         };
       });
 
-      const mockFallback = MOCK_COMPANIES.map((c) => ({ ...c, isReal: false }));
-      
-      const combined = [...dbProfessionals];
-      mockFallback.forEach((mock) => {
-        if (combined.length < 4 && !combined.some((p) => p.name === mock.name)) {
-          combined.push(mock);
-        }
-      });
-
-      setCompanies(shuffleArray(combined).slice(0, 4));
+      setCompanies(shuffleArray(dbProfessionals).slice(0, 4));
     } else if (!isLoading) {
-      setCompanies(shuffleArray(MOCK_COMPANIES).slice(0, 4));
+      setCompanies([]);
     }
   }, [realProfessionals, isLoading]);
 
@@ -207,7 +191,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {companies.length === 0 ? (
+            {isLoading ? (
               Array.from({ length: 4 }).map((_, i) => (
                 <div key={i} className="bg-white dark:bg-[#111] rounded-3xl border border-slate-200 dark:border-white/5 overflow-hidden animate-pulse h-[360px]">
                   <div className="h-48 bg-slate-200 dark:bg-white/5" />
@@ -218,6 +202,23 @@ export default function HomePage() {
                   </div>
                 </div>
               ))
+            ) : companies.length === 0 ? (
+              <div className="col-span-full py-16 text-center space-y-4 bg-white dark:bg-[#111] rounded-3xl border border-slate-200 dark:border-white/5 p-8 shadow-sm">
+                <div className="h-14 w-14 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center mx-auto">
+                  <Briefcase size={28} />
+                </div>
+                <div className="space-y-1 max-w-md mx-auto">
+                  <h3 className="text-lg font-bold">Nenhuma empresa cadastrada no momento</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400">
+                    Seja a primeira empresa ou técnico parceiro a se cadastrar e aparecer em destaque!
+                  </p>
+                </div>
+                <Link href="/register" className="inline-block pt-2">
+                  <button className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-blue-500/20 active:scale-95">
+                    Cadastrar Minha Empresa
+                  </button>
+                </Link>
+              </div>
             ) : (
               companies.map((company, i) => (
                 <motion.div
@@ -252,7 +253,7 @@ export default function HomePage() {
                       <span className="flex items-center gap-1"><Users size={14} /> {company.reviews} avaliações</span>
                       <span className="flex items-center gap-1"><ShieldCheck size={14} className="text-emerald-500" /> Verificada</span>
                     </div>
-                    <Link href={company.isReal ? `/profile/${company.id}` : `/companies`}>
+                    <Link href={`/profile/${company.id}`}>
                       <button className="w-full bg-slate-100 dark:bg-white/5 group-hover:bg-blue-600 group-hover:text-white py-3 rounded-xl text-sm font-black transition-all">
                         Ver Perfil
                       </button>
