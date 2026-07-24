@@ -4,7 +4,7 @@ module.exports = {
   apps: [
     {
       name: "buscador-api",
-      script: "dist/main.js",
+      script: "dist/src/main.js",
       cwd: path.resolve(__dirname, "apps/api"),
       instances: 1,
       autorestart: true,
