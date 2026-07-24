@@ -65,7 +65,7 @@ export class PaymentsController {
 
     if (event.type === 'checkout.session.completed') {
       const session = event.data.object as any;
-      const { userId, ticketId, proposalId, type } = session.metadata || {};
+      const { userId, ticketId, proposalId, type, planId } = session.metadata || {};
 
       if (type === 'job_payment' && ticketId && proposalId) {
         await this.paymentsService.processJobPayment(
@@ -75,7 +75,7 @@ export class PaymentsController {
           session.amount_total ?? 0,
         );
       } else if (userId) {
-        await this.paymentsService.processSubscription(userId);
+        await this.paymentsService.processSubscription(userId, planId);
       }
     }
 

@@ -183,19 +183,27 @@ export class PaymentsService {
     this.logger.log(`Pagamento em Escrow confirmado para o ticket: ${ticketId}`);
   }
 
-  async processSubscription(userId: string) {
+  async processSubscription(userId: string, planId?: string) {
     const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + 30); // 30 dias de acesso
 
+    const updateData: any = {
+      subscriptionActive: true,
+      subscriptionExpiresAt: expiryDate,
+    };
+
+    if (planId === 'company') {
+      updateData.userType = 'company';
+    } else if (planId === 'tech' || planId === 'technician') {
+      updateData.userType = 'technician';
+    }
+
     await this.prisma.user.update({
       where: { id: userId },
-      data: {
-        subscriptionActive: true,
-        subscriptionExpiresAt: expiryDate,
-      },
+      data: updateData,
     });
 
-    this.logger.log(`Assinatura ativa para o usuário: ${userId}`);
+    this.logger.log(`Assinatura ativa para o usuário ${userId} no plano: ${planId || 'padrão'}`);
   }
 
   async processMpPayment(paymentId: string) {
@@ -228,7 +236,7 @@ export class PaymentsService {
         const amountCents = Math.round(payment.transaction_amount * 100);
         await this.processJobPayment(ticketId, proposalId, `mp_${paymentId}`, amountCents);
       } else if (userId) {
-        await this.processSubscription(userId);
+        await this.processSubscription(userId, planId);
       }
 
       this.logger.log(`Pagamento MercadoPago ${paymentId} processado com sucesso`);
