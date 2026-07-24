@@ -1,9 +1,11 @@
+const path = require('path');
+
 module.exports = {
   apps: [
     {
       name: "buscador-api",
       script: "dist/main.js",
-      cwd: "./apps/api",
+      cwd: path.resolve(__dirname, "apps/api"),
       instances: 1,
       autorestart: true,
       watch: false,
@@ -15,9 +17,9 @@ module.exports = {
     },
     {
       name: "buscador-web",
-      script: "node_modules/next/dist/bin/next",
+      script: path.resolve(__dirname, "node_modules/next/dist/bin/next"),
       args: "start -p 5279",
-      cwd: "./apps/web",
+      cwd: path.resolve(__dirname, "apps/web"),
       instances: 1,
       autorestart: true,
       watch: false,

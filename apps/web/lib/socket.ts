@@ -1,8 +1,7 @@
 import { io, Socket } from 'socket.io-client';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:5278/api';
-// A porta do Socket.IO geralmente é a raiz (sem /api) dependendo da configuração do backend
-const SOCKET_URL = API_URL.replace('/api', '');
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+const SOCKET_URL = API_URL.startsWith('http') ? API_URL.replace('/api', '') : undefined;
 
 let socket: Socket | null = null;
 
