@@ -89,11 +89,11 @@ Antes de iniciar, certifique-se de ter os seguintes pacotes instalados na sua VP
 Execute o banco de dados no Supabase e gere as tipagens do Prisma Client:
 
 ```bash
-# Sincronizar o banco de dados Supabase com o Prisma Schema
-pnpm exec prisma db push --schema=apps/api/prisma/schema.prisma
+# Sincronizar o banco de dados Supabase com o Prisma Schema (usando Prisma 6)
+npx prisma@6 db push --schema=apps/api/prisma/schema.prisma
 
 # Gerar o cliente Prisma
-pnpm exec prisma generate --schema=apps/api/prisma/schema.prisma
+pnpm --filter @buscador/api prisma:generate
 ```
 
 ---
