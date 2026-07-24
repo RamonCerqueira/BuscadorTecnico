@@ -32,4 +32,3 @@ next-env.d.ts
 # configurações de IDE
 .vscode/
 .idea/
-.env.example
