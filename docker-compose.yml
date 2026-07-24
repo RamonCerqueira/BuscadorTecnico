@@ -21,7 +21,7 @@ services:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
-      PORT: 4000
+      PORT: 5278
       DATABASE_URL: postgresql://buscador:buscador@postgres:5432/buscador
       REDIS_HOST: redis
       REDIS_PORT: 6379
@@ -29,18 +29,18 @@ services:
       - postgres
       - redis
     ports:
-      - '4000:4000'
+      - '5278:5278'
 
   web:
     build:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
-      NEXT_PUBLIC_API_URL: http://localhost:4000/api
+      NEXT_PUBLIC_API_URL: http://localhost:5278/api
     depends_on:
       - api
     ports:
-      - '3000:3000'
+      - '5279:5279'
 
 volumes:
   postgres_data:

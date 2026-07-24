@@ -233,9 +233,9 @@ Agora, configure o Nginx para redirecionar o tráfego do subdomínio `techfix.ge
        listen 80;
        server_name techfix.genioplay.com.br;
 
-       # Frontend Next.js (Porta 3000)
+       # Frontend Next.js (Porta 5279)
        location / {
-           proxy_pass http://127.0.0.1:3000;
+           proxy_pass http://127.0.0.1:5279;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';
@@ -246,9 +246,9 @@ Agora, configure o Nginx para redirecionar o tráfego do subdomínio `techfix.ge
            client_max_body_size 20M;
        }
 
-       # Backend NestJS (Porta 4000) - Direcionando o prefixo /api
+       # Backend NestJS (Porta 5278) - Direcionando o prefixo /api
        location /api {
-           proxy_pass http://127.0.0.1:4000/api;
+           proxy_pass http://127.0.0.1:5278/api;
            proxy_http_version 1.1;
            proxy_set_header Upgrade $http_upgrade;
            proxy_set_header Connection 'upgrade';

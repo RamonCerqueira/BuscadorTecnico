@@ -41,7 +41,7 @@ export function FileUpload({ onUpload, maxFiles = 3, label = 'Anexar evidências
 
        try {
          // Note: we need to use fetch directly or update apiPost to handle FormData
-         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api'}/uploads/file`, {
+         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5278/api'}/uploads/file`, {
            method: 'POST',
            headers: {
              Authorization: `Bearer ${JSON.parse(localStorage.getItem('buscador-session') || '{}').state?.token}`
