@@ -126,57 +126,80 @@ export default function HomePage() {
   return (
     <div className="flex flex-col min-h-screen bg-white dark:bg-[#0a0a0a] text-slate-900 dark:text-white transition-colors duration-300">
       
-      {/* Search Hero Section - Ultra Clean */}
-      <section className="relative pt-32 pb-20 px-4">
-        <div className="container mx-auto max-w-4xl text-center space-y-10">
+      {/* Search Hero Section - Parallax & Glassmorphism */}
+      <section 
+        className="relative min-h-[85vh] flex items-center justify-center pt-32 pb-24 px-4 overflow-hidden bg-fixed bg-cover bg-center"
+        style={{ backgroundImage: "url('https://images.unsplash.com/photo-1581092160607-ee22621dd758?q=80&w=2070&auto=format&fit=crop')" }}
+      >
+        {/* Multi-layer Overlays for Contrast & Parallax Depth */}
+        <div className="absolute inset-0 bg-slate-950/80 dark:bg-black/85 backdrop-blur-[2px] z-0" />
+        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/90 via-slate-950/70 to-slate-950 dark:from-black/90 dark:via-black/75 dark:to-[#0a0a0a] z-0" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(37,99,235,0.18)_0,transparent_100%)] pointer-events-none z-0" />
+
+        <div className="container relative z-10 mx-auto max-w-4xl text-center space-y-10">
+          
+          {/* Glassmorphic Trust Badge */}
           <motion.div 
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-4"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 text-xs font-bold text-blue-300 shadow-xl"
           >
-            <h1 className="text-4xl md:text-6xl font-black tracking-tight">
-              O que você precisa <span className="text-blue-600">consertar</span> hoje?
-            </h1>
-            <p className="text-slate-500 dark:text-slate-400 text-lg md:text-xl font-medium">
-              Encontre os melhores técnicos e empresas em segundos.
-            </p>
+            <ShieldCheck size={14} className="text-cyan-400" />
+            <span>Rede Oficial de Técnicos & Empresas Verificadas</span>
           </motion.div>
 
           <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.05 }}
+            className="space-y-4"
+          >
+            <h1 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-white leading-tight drop-shadow-md">
+              O que você precisa <span className="bg-gradient-to-r from-blue-400 via-cyan-400 to-indigo-400 bg-clip-text text-transparent">consertar</span> hoje?
+            </h1>
+            <p className="text-slate-300 text-lg md:text-2xl font-medium max-w-2xl mx-auto drop-shadow">
+              Conecte-se aos melhores especialistas e empresas da sua região em segundos.
+            </p>
+          </motion.div>
+
+          {/* Search Box - Premium Glassmorphism */}
+          <motion.div 
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.1 }}
+            transition={{ delay: 0.15 }}
             className="relative group max-w-2xl mx-auto"
           >
-            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200"></div>
-            <form onSubmit={handleSearchSubmit} className="relative flex flex-col sm:flex-row items-center bg-white dark:bg-[#111] border border-slate-200 dark:border-white/10 rounded-2xl p-2 shadow-2xl gap-2 sm:gap-0">
-              <div className="hidden sm:block pl-4 text-slate-400">
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-cyan-500 to-indigo-600 rounded-3xl blur-lg opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200"></div>
+            <form onSubmit={handleSearchSubmit} className="relative flex flex-col sm:flex-row items-center bg-slate-900/80 dark:bg-black/80 backdrop-blur-xl border border-white/20 rounded-2xl p-2.5 shadow-2xl gap-2 sm:gap-0">
+              <div className="hidden sm:block pl-4 text-cyan-400">
                 <Search size={24} />
               </div>
               <input 
                 type="text" 
-                placeholder="Ex: Ar condicionado, Eletricista..."
-                className="w-full sm:flex-1 bg-transparent border-none focus:ring-0 px-4 py-3 sm:py-4 text-base sm:text-lg font-medium outline-none text-center sm:text-left text-slate-900 dark:text-white"
+                placeholder="Ex: Ar condicionado, Eletricista, Reformas..."
+                className="w-full sm:flex-1 bg-transparent border-none focus:ring-0 px-4 py-3.5 sm:py-4 text-base sm:text-lg font-semibold outline-none text-center sm:text-left text-white placeholder:text-slate-400"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
-              <button type="submit" className="w-full sm:w-auto bg-blue-600 hover:bg-blue-500 text-white px-8 py-3.5 sm:py-4 rounded-xl font-bold transition-all active:scale-95 shadow-lg shadow-blue-500/25">
-                Buscar
+              <button type="submit" className="w-full sm:w-auto bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-8 py-4 rounded-xl font-bold transition-all active:scale-95 shadow-xl shadow-blue-600/30">
+                Buscar Agora
               </button>
             </form>
           </motion.div>
 
-          <div className="flex flex-wrap justify-center gap-3 pt-4">
-            {['Ar Condicionado', 'Elétrica', 'Hidráulica', 'Limpeza', 'Reformas'].map((cat) => (
+          {/* Category Pills Glassmorphism */}
+          <div className="flex flex-wrap justify-center gap-3 pt-2">
+            {['Ar Condicionado', 'Elétrica', 'Hidráulica', 'Limpeza', 'Reformas', 'Automação'].map((cat) => (
               <Link 
                 href={`/companies?category=${encodeURIComponent(cat)}`}
                 key={cat} 
-                className="px-4 py-2 rounded-full border border-slate-200 dark:border-white/10 text-xs font-bold bg-white dark:bg-white/5 hover:bg-slate-50 dark:hover:bg-white/10 transition-all text-slate-700 dark:text-slate-300 active:scale-95"
+                className="px-4 py-2.5 rounded-full border border-white/15 text-xs font-bold bg-white/10 dark:bg-white/5 backdrop-blur-md hover:bg-white/20 hover:border-cyan-400/50 transition-all text-slate-200 hover:text-white active:scale-95 shadow-lg"
               >
                 {cat}
               </Link>
             ))}
           </div>
+
         </div>
       </section>
 
